@@ -1,0 +1,107 @@
+\documentclass[11pt,chicago.sty]{article}
+%\documentclass[11pt]{article}
+
+\usepackage{makeidx}         % allows index generation
+\usepackage{graphicx}        % standard LaTeX graphics tool
+                             % when including figure files
+\usepackage{multicol}        % used for the two-column index
+\usepackage[bottom]{footmisc}% places footnotes at page bottom
+\usepackage{sidecap}
+\usepackage{wrapfig}
+\usepackage{hyperref}
+% \usepackage{nsf}
+% \pagestyle{nsf}
+\usepackage{enumitem}
+
+\makeindex
+\newcommand{\runinhead}[1]{\vspace{+5pt}\noindent \textbf{#1:}\hspace{.5em}}
+
+\usepackage{subfigure}
+\usepackage{graphicx}
+
+
+\usepackage{color}
+\usepackage{colortbl}
+\usepackage{tabularx}
+
+
+%% FA COMMANDS
+\setlength{\fboxsep}{1em}
+\newcommand{\spacecont}[1]{\ensuremath{\mathscr{#1}}}
+\newcommand{\spacedisc}[1]{\ensuremath{\mathit{#1}}}
+
+\usepackage{algorithm}
+% \usepackage{algpseudocode}
+%\usepackage{mathptmx}       % selects Times Roman as basic font
+\usepackage{helvet}         % selects Helvetica as sans-serif font
+\usepackage{courier}        % selects Courier as typewriter font
+\usepackage{type1cm}        % activate if the above 3 fonts are
+
+\usepackage{listings}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\lstset{frame=tb,
+  language=c++,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\footnotesize\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=3
+}
+
+
+\input{defs}
+
+
+\makeatletter
+%\renewcommand\section{\@startsection{section}{1}{\z@}%
+%                                  {-2.0ex \@plus -1ex \@minus -.3ex}%
+%                                  {.7ex \@plus.1ex}%
+%                                  {\normalfont\large\bfseries}}
+\makeatother
+%\usepackage[sc]{mathpazo}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsbsy}
+
+\linespread{1.05}
+\usepackage[left=3cm,top=2.5cm,right=3cm,bottom=3.3cm,nohead]{geometry}
+\title{DART: Dynamic Animation and Robotics Toolkit}
+\date{}
+%\author{C. Karen Liu \and Jeongseok Lee \and Michael X. Grey}
+\begin{document}
+\vspace{-180pt}
+
+
+
+\maketitle
+%\begin{center}
+%\end{center}
+%\pagenumbering{gobble}
+\input{intro}
+\input{kinematics}
+\input{dynamics}
+\input{others}
+%\input{lessons}
+
+
+
+\pagebreak
+\thispagestyle{empty}
+\pagestyle{empty}
+\bibliographystyle{unsrt}
+\bibliography{refs.bib}
+
+\end{document}

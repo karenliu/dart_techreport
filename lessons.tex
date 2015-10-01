@@ -1,0 +1,64 @@
+\section{Lesson 0: Simulate a passive multi-pendulum}
+
+This is a warmup lesson that demonstrates how to set up a simulation program in DART. The example we will use throughout this tutorial is a pendulum with five rigid bodies swinging under gravity. DART allows the user to build various articulated rigid/soft body systems from scratch. It also loads models in URDF, SDF, and SKEL formats as demonstrated in the later tutorials.
+
+In DART, an articulated dynamics model is represented by a \textbf{Skeleton}. In the main function, we first create an empty skeleton named \emph{pendulum}.
+
+\begin{lstlisting}
+SkeletonPtr pendulum = Skeleton::create("pendulum");
+\end{lstlisting}
+
+A Skeleton is a structure that consists of \textbf{BodyNode}s (bodies) which are connected by \textbf{ Joint}s. Every Joint has a child BodyNode, and every BodyNode has a parent Joint. Even the root BodyNode has a Joint that attaches it to the \textbf{World}. In the function makeRootBody, we create a pair of a \textbf{BallJoint} and a BodyNode, and attach this pair to the currently empty pendulum skeleton.
+
+\begin{lstlisting}
+BodyNodePtr bn = pendulum->createJointAndBodyNodePair<BallJoint>(nullptr, properties, BodyNode::Properties(name)).second;
+\end{lstlisting}
+
+Note that the first parameters is a nullptr, which indicates that this new BodyNode is the root of the pendulum. If we wish to append the new BodyNode to an existing BodyNode in the pendulum, we can do so by passing the pointer of the existing BodyNode as the first parameter. In fact, this is how we add more BodyNodes to the pendulum in the function addBody:
+
+\begin{lstlisting}
+BodyNodePtr bn = pendulum->createJointAndBodyNodePair<RevoluteJoint>(parent, properties, BodyNode::Properties(name)).second;
+\end{lstlisting}
+
+The simplest way to set up a simulation program in DART is to use SimWindow class. A SimWindow owns an instance of World and simulates all the Skeletons in the World. In this example, we create a World with the pendulum skeleton in it, and assign the World to an instance of \textbf{MyWindow}, a subclass derived from \textbf{SimWindow}.
+
+\begin{lstlisting}
+WorldPtr world(new World);
+world->addSkeleton(pendulum);
+MyWindow window(world);
+\end{lstlisting}
+
+Every single time step, the MyWindow::timeStepping function will be called and the state of the World will be simulated. The user can override the default timeStepping function to customize the simulation routine. For example, one can incorporate sensors, actuators, or user interaction in the forward simulation.
+
+\section{Lesson 1: Change shapes and applying forces}
+
+We have a pendulum with five bodies, and we want to be able to apply forces to them during simulation. Additionally, we want to visualize these forces so we can more easily interpret what is happening in the simulation. For this reason, we'll discuss visualizing and forces at the same time.
+
+\subsection{Lesson 1a: Reset everything to default appearance}
+
+At each step, we'll want to make sure that everything starts out with its default appearance. The default is for everything to be blue and there not to be any arrow attached to any body. Find the function named timeStepping in the \textbf{MyWindow} class. The top of this function is where we will want to reset everything to the default appearance.
+
+Each BodyNode contains visualization \textbf{Shape}s that will be rendered during simulation. In our case, each BodyNode has two shapes: One shape to visualize the parent joint and one shape to visualize the body. The default appearance for everything is to be colored blue, so we'll want to iterate through these two Shapes in each BodyNode, setting their colors to blue.
+
+\begin{lstlisting}
+for(size_t i = 0; i < mPendulum->getNumBodyNodes(); ++i)
+{
+  BodyNode* bn = mPendulum->getBodyNode(i);
+  for(size_t j = 0; j < 2; ++j)
+  {
+    const ShapePtr& shape = bn->getVisualizationShape(j);
+
+    shape->setColor(dart::Color::Blue());
+  }
+  // TODO: Remove any arrows
+}
+\end{lstlisting}
+
+Additionally, there is the possibility that some BodyNodes will have an arrow shape attached if the user had been applying an external body force to it. By default, this arrow should not be attached, so in the outer for-loop, we should check for arrows and remove them:
+
+\begin{lstlisting}
+if(bn->getNumVisualizationShapes() == 3)
+{
+  bn->removeVisualizationShape(mArrow);
+}
+\end{lstlisting}

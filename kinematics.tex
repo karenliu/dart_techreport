@@ -1,0 +1,256 @@
+\section{Kinematic Features}
+Kinematic data structures in DART are designed to be comprehensive, extensible, and efficient for dynamic computation. Our design principles are heavily influenced by practical use cases suggested by researchers and practitioners in Robotics. We also follow the guidelines proposed by OSRF to make DART compatible with Gazebo standard.
+
+\subsection{Skeleton, BodyNode, and Joint}
+\begin{figure*}
+\centering
+\includegraphics[width=6.0in]{skeletonTree.jpg}
+\caption{Tasks for each research aim.}
+\label{fig:skeleton}
+\end{figure*}
+ In DART, an articulated dynamics model is represented by a \textbf{Skeleton}. A Skeleton is a tree structure that consists of \textbf{BodyNode}s which are connected by \textbf{Joint}s. Every Joint has a child BodyNode, and every BodyNode has a parent Joint. Even the root BodyNode has a Joint that attaches it to the World. For example, the human skeleton can be organized into a tree structure (Figure \ref{fig:skeleton}) with nodes representing BodyNodes and edges representing Joints. Depending on the joint type (Section \ref{sec:jointTypes}), each joint has a specific number of degrees of freedom (DOFs). For example, the hip joint can be modelled by a \textbf{EulerJoint} with three DOFs, while a knee joint can be modelled by a \textbf{RevoluteJoint} with one DOF. In this model, we select the pelvis to be the root BodyNode, which connects to the World via a \textbf{FreeJoint} with six DOFs.
+
+A kinematic chain is a sequence of transformations from one BodyNode to another in the Skeleton. Figure \ref{fig:parentChild}(a) illustrates the transformations between two intermediate BodyNodes denoted as Parent and Child. The coordinate frames of Parent, Child, and the joint between them are shown as the RGB arrows. Let $\vc{T}_{pj}$ be the transformation from the Parent frame to the joint frame and $\vc{T}_{cj}$ be the transformation from the Child frame to the joint frame. These two transformations are fixed and can be customized as part of the properties of the joint. The transformation of the joint $\vc{T}(\vc{q})$ is a function of the DOFs, $\vc{q}$, associated with the joint. In the case of the hip joint, $\vc{q}$ is a 3x1 vector consisting of hip rotation angles in three dimensions. Thus, the transformation from the Parent frame to the Child frame is denoted by $\vc{T}_{pj}\vc{T}(\vc{q})\vc{T}_{cj}^T$.
+
+\begin{figure*}
+\centering
+\includegraphics[width=6.0in]{parentChild.jpg}
+\caption{Tasks for each research aim.}
+\label{fig:parentChild}
+\end{figure*}
+
+
+\subsection{BodyNode properties}
+A BodyNode contains a set of customizable properties to define its kinematic and dynamic behaviors.
+\begin{itemize}[leftmargin=*] \itemsep1pt \parskip0pt \parsep0pt
+  \item{\textbf{Inertial properties:}} The user can define the mass, the position of the center of mass in the BodyNode frame, and the moment of inertia around the center of mass in the BodyNode frame. The ellipsoids in Figure \ref{fig:parentChild}(b) illustrate the center of mass ($\vc{c}$) and the moment of inertia defined in the BodyNode frame.
+  \item{\textbf{Geometry properties:}} The user can associate a set of \textbf{Shape}s with a BodyNode. Each shape has its own geometry information used by rendering and collision detection routines. DART supports a few primitive shapes, box, ellipsoid, cylinder, plane, line segment, in addition to arbitrary 3D polygons. Each shape can be defined in its own coordinate frame. The spatial relation between the Shape and its associated BodyNode is defined by a fixed transformation $\vc{T}_g$ (Figure \ref{fig:parentChild}(b)).
+  \item{\textbf{Collision properties:}} The user can set the friction coefficient and the coefficient of restitution of a BodyNode, as well as the flag that determines whether the BodyNode is collidable.
+\end{itemize}
+
+\subsection{Joint types}
+\label{sec:jointTypes}
+DART supports 10 types of joints. Each joint type has a fixed number of DOFs and a specific configuration domain. Some joint types require the user to define their unique properties. For example, the rotation axes of \textbf{RevoluteJoint}, \textbf{UniversalJoint} and \textbf{PlanarJoint} need to be specified when the joint is constructed. Likewise, the order of three axes ('xyz', 'zyx', etc) in an \textbf{EulerJoint} needs to be predefined. Note that Both \textbf{BallJoint} and \textbf{EulerJoint} have three DOFs and $SO(3)$ configuration domain. However, a \textbf{BallJoint} is represented by an exponential map while an \textbf{EulerJoint} is represented by three consecutive 1D rotational matrices. All joint types provided by DART are listed in Table \ref{tab:jointTypes}. 
+
+\begin{table}[h]
+\centering
+\caption{Joint Types}
+\begin{tabular}{|c|c|c|c|}
+  \hline
+  \textbf{Name} & \textbf{\#DOF} & \textbf{Configuration Domain}  & \textbf{Properties}\\
+  \hline
+  BallJoint  &  3 & $SO(3)$  & \\
+  \hline
+  EulerJoint & 3  & $SO(3)$ & 3-axis order \\
+  \hline
+  FreeJoint  & 6 & $SE(3)$  &\\
+  \hline
+  PlanarJoint & 3  & $R^2 \cup SO(1)$ & axis1 and axis2 \\
+  \hline
+  PrismaticJoint & 1  & $R$ & axis \\
+  \hline
+  RevoluteJoint & 2  & $SO(1)$ & axis \\
+  \hline
+  ScrewJoint & 1  & $R \cup SO(1)$  s.t. screw constraint & axis and pitch \\
+  \hline
+  TranslationalJoint & 3  & $R^3$ &  \\
+  \hline
+  UniversalJoint & 2  & $SO(2)$ & axis1 and axis2 \\
+  \hline
+  WeldJoint & 0  & $\emptyset$ &  \\
+  \hline
+\end{tabular}
+\label{tab:jointTypes}
+\end{table}
+
+\subsection{Frame semantics}
+
+\subsection{Kinematic state of the system}
+DART provides a variety of ways to query the position and the velocity of the system in generalized, Cartesian, and spatial coordinates. 
+
+\begin{lstlisting}
+// Generalized coordinates
+Eigen::VectorXd MetaSkeleton::getPositions() const;
+Eigen::VectorXd MetaSkeleton::getVelocities() const;
+
+// Cartesian coordinates
+Eigen::Isometry3d Frame::getTransform(const Frame* _withRespectTo = Frame::World(), const Frame* _inCoordinatesOf = Frame::World()) const;
+Eigen::Vector3d Frame::getLinearVelocity(const Eigen::Vector3d& _offset, const Frame* _relativeTo = Frame::World(), const Frame* _inCoordinatesOf = Frame::World()) const;
+Eigen::Vector3d Frame::getAngularVelocity(const Frame* _relativeTo = Frame::World(), const Frame* _inCoordinatesOf = Frame::World()) const;
+Eigen::Vector3d Skeleton::getCOM(const Frame* _withRespectTo = Frame::World()) const override;
+Eigen::Vector3d Skeleton::getCOMLinearVelocity(const Frame* _relativeTo = Frame::World(), const Frame* _inCoordinatesOf = Frame::World()) const override;
+Eigen::Vector3d BodyNode::getCOM(const Frame* _withRespectTo = Frame::World()) const;
+Eigen::Vector3d BodyNode::getCOMLinearVelocity(const Frame* _relativeTo = Frame::World(), const Frame* _inCoordinatesOf = Frame::World()) const;
+
+// Spatial coordinates
+Eigen::Vector6d Frame::getSpatialVelocity(const Eigen::Vector3d& _offset, const Frame* _relativeTo, const Frame* _inCoordinatesOf) const;
+\end{lstlisting}
+
+For  example, if one wishes to know the transformation of the left
+hand from the left upper arm expressed in the coordinate frame of the
+pelvis, it can be achieved by 
+
+\begin{lstlisting}
+// Assume l-hand, l-upper-arm, and pelvis are pointers of BodyNode
+ Isometry3d T = l-hand->getTransform(l-upper-arm, pelvis);
+\end{lstlisting}
+
+The velocity of any point in any BodyNode frame relative to any other
+frame can be queried. For example, the relative linear velocity of a
+local point, \emph{offset}, in the \emph{l-hand} frame from the origin of the \emph{l-upper-arm} frame expressed in the \emph{pelvis} frame can be accessed by
+
+\begin{lstlisting}
+ Vector3d v = l-hand->getLinearVelocity(offset, l-upper-arm, pelvis);
+\end{lstlisting}
+
+
+% \paragraph{Generalized coordinates.} The configuration of a skeleton can be accessed via the functions that return the generalized positions of a system.
+
+% \begin{lstlisting}[caption=MetaSkeleton.h]
+% // Get the positions for all generalized coordinates
+% Eigen::VectorXd getPositions() const;
+
+% // Get the positions for a subset of the generalized coordinates
+% Eigen::VectorXd getPositions(const std::vector<size_t>& _indices) const;
+
+% // Get the position of a single generalized coordinate
+% double getPosition(size_t _index) const;
+
+% // Get the velocities for all generalized coordinates
+% Eigen::VectorXd getVelocities() const;
+
+% // Get the velocities for a subset of the generalized coordinates
+% Eigen::VectorXd getVelocities(const std::vector<size_t>& _indices) const;
+
+% // Get the velocity of a single generalized coordinate
+% double getVelocity(size_t _index) const;
+% \end{lstlisting}
+
+% \paragraph{Cartesian coordinates.}DART provides flexible API to query the transformation of a BodyNode relative expressed in any coordinate frame, with respect to any coordinate frame. 
+
+% \begin{lstlisting}[caption=Frame.h]
+% // Example: The transformation of the left hand from the left upper arm expressed in the coordinate frame of the pelvis can be accessed by 
+% // Isometry3d T = l-hand->getTransform(l-upper-arm, pelvis);
+% // , where l-hand, l-upper-arm, and pelvis are pointers of BodyNode.
+ 
+% Eigen::Isometry3d getTransform(const Frame* _withRespectTo = Frame::World(), const Frame* _inCoordinatesOf = Frame::World()) const;
+% \end{lstlisting}
+
+% In the absence of the second and the third arguments, this function will return the transformation from the World to the BodyNode expressed in the World frame.
+
+% In terms of Cartesian velocity, the linear velocity of any point in any BodyNode frame relative to any other frame can be queried. This linear velocity can be expressed in any coordinate frame. We can also query the angular velocity of a BodyNode relative to any other frame expressed in any frame.
+
+% \begin{lstlisting}[caption=Frame.h]
+% // Example: The relative linear velocity of a local point ''Vector3d offset(0.1, 0, 0)'' in the l-hand frame from the origin of the l-upper-arm frame expressed in the pelvis frame can be accessed by
+% // Vector3d v = l-hand->getLinearVelocity(offset, l-upper-arm, pelvis);
+
+% Eigen::Vector3d getLinearVelocity(const Eigen::Vector3d& _offset, const Frame* _relativeTo = Frame::World(), const Frame* _inCoordinatesOf = Frame::World()) const;
+
+% Eigen::Vector3d getAngularVelocity(const Frame* _relativeTo = Frame::World(), const Frame* _inCoordinatesOf = Frame::World()) const;
+% \end{lstlisting}
+
+% DART also provides convenient API to access the state of the center of mass for a Skeleton.
+
+% \begin{lstlisting}[caption=Skeleton.h]
+% Eigen::Vector3d getCOM(const Frame* _withRespectTo = Frame::World()) const override;
+
+% Eigen::Vector3d getCOMLinearVelocity(const Frame* _relativeTo = Frame::World(), const Frame* _inCoordinatesOf = Frame::World()) const override;
+% \end{lstlisting}
+
+% The same API is also provided for accessing the state of the center of mass for a BodyNode.
+
+% \begin{lstlisting}[caption=BodyNode.h]
+% Eigen::Vector3d getCOM(const Frame* _withRespectTo = Frame::World()) const;
+
+% Eigen::Vector3d getCOMLinearVelocity(const Frame* _relativeTo = Frame::World(), const Frame* _inCoordinatesOf = Frame::World()) const;
+% \end{lstlisting}
+
+% \paragraph{Spatial coordinates.}
+
+\subsection{Jacobian matrices}
+Calculating Jacobian matrix is a common theme in forward simulation, inverse kinematics, and many other robotics or graphics applications. DART computes Jacobian matrices and its derivatives efficiently and provides API to access the results in various forms. 
+
+\paragraph{Skeleton.} The full Jacobian matrix with respect to all DOFs in the system can be accessed via the member functions of Skeleton.
+
+\begin{lstlisting}[caption=Skeleton.h]
+math::LinearJacobian getLinearJacobian(const BodyNode* _bodyNode, const Eigen::Vector3d& _localOffset, const Frame* _inCoordinatesOf = Frame::World()) const override;
+
+math::AngularJacobian getAngularJacobian(const BodyNode* _bodyNode, const Frame* _inCoordinatesOf = Frame::World()) const override;
+\end{lstlisting}
+
+The first function returns $J_v$ that maps the generalized velocity of
+the system to the velocity of the point attached to \emph{bodyNode}
+with an offset, \emph{localOffset}, from the origin of
+\emph{bodyNode}, $\vc{v} = J_v \dot{\vc{q}}$. The second function
+returns $J_{\omega}$ that maps the generalized velocity to the angular
+velocity of \emph{bodyNode}, $\omega = J_{\omega}\dot{\vc{q}}$. The
+last optional parameter, \emph{inCoordinatesOf}, determines in which
+coordinate frame the Jacobian matrix is expressed. The full Jacobian
+matrix that combines both $J_v$ and $J_{\omega}$ can be obtained by
+the following function.
+
+\begin{lstlisting}[caption=Skeleton.h]
+math::Jacobian getJacobian(const BodyNode* bodyNode, const Eigen::Vector3d& localOffset, const Frame* inCoordinatesOf) const override;
+\end{lstlisting}
+
+
+% $R^T\frac{\partial T\vc{p}}{\partial \vc{q}} \in \vc{R}^{3\times n}$,
+% where $R$ is the rotation part of the transformation from the World
+% frame to the frame of \emph{inCoordinatesOf}, $T$ is the
+% transformation from the World frame to the frame of \emph{BodyNode},
+% $\vc{p}$ is a local coordinate indicated by \emph{localOffset} in the
+% frame of \emph{bodyNode}, and $\vc{q}$ is the vector of DOFs of the
+% system which has the size $n$. The second function returns 
+
+
+% The submatrix containing the top three
+% rows is the linear Jacobian matrix of the point attached to
+% \emph{bodyNode} with an offset, \emph{localOffset}, from the origin of
+% \emph{bodyNode}, while the submatrix containing the bottom three rows
+% is the angular Jacobain matrix of the \emph{bodyNode} frame. The
+% Jacobain matrix can be expressed in any coordinate frame specified by
+% \emph{inCoordinatesOf}. If only linear or angular Jacobian matrix is
+% needed, the following two functions can be used.
+
+
+\paragraph{BodyNode.} More compact Jacobian matrices can be acquired
+via the member functions of a BodyNode. Unlike the Jacobain matrices
+for the entire Skeleton, these Jacobian matrices have $m$ columns, the number of DOFs on the kinematic chain from the root node to the BodyNode of interest.
+
+
+\begin{lstlisting}[caption=BodyNode.h]
+math::LinearJacobian getLinearJacobian(const Eigen::Vector3d& _offset, const Frame* _inCoordinatesOf = Frame::World()) const;
+
+math::AngularJacobian getAngularJacobian(const Frame* _inCoordinatesOf = Frame::World()) const;
+
+math::Jacobian getJacobian(const Eigen::Vector3d& _offset, const Frame* _inCoordinatesOf) const;
+\end{lstlisting}
+
+\paragraph{Joint.} Similar Jacobian functions are also available for
+the Joint class. The number of columns of the Jacobian depends on the
+number of DOFs of the joint. For example, a BallJoint returns a $6
+\times 3$ Jacobian while a RevoluteJoint returns a $6 \times 1$ Jacobian.
+
+\begin{lstlisting}[caption=Joint.h]
+virtual math::Jacobian getLocalJacobian(const Eigen::VectorXd&
+_positions) const = 0;
+\end{lstlisting}
+
+
+
+% Joint:
+% /// Get generalized Jacobian from parent body node to child body node
+%   /// w.r.t. local generalized coordinate
+%   virtual const math::Jacobian getLocalJacobian() const = 0;
+
+%   /// Get generalized Jacobian from parent body node to child body node
+%   /// w.r.t. local generalized coordinate
+%   virtual math::Jacobian getLocalJacobian(
+%       const Eigen::VectorXd& _positions) const = 0;
+
+%   /// Get time derivative of generalized Jacobian from parent body node
+%   /// to child body node w.r.t. local generalized coordinate
+%   virtual const math::Jacobian getLocalJacobianTimeDeriv() const = 0;
+
+\subsection{Skeleton modeling}
+\subsection{Inverse kinematics}

@@ -1,0 +1,70 @@
+\section{Introduction}
+
+DART (Dynamic Animation and Robotics Toolkit) is a collaborative, cross-platform, open source library created by the Georgia Tech Graphics Lab and Humanoid Robotics Lab. The library provides data structures and algorithms for kinematic and dynamic applications in robotics and computer animation. DART is distinguished by its accuracy and stability due to its use of generalized coordinates to represent articulated rigid body systems and Featherstone's Articulated Body Algorithm to compute the dynamics of motion. For developers, in contrast to many popular physics engines which view the simulator as a black box, DART gives full access to internal kinematic and dynamic quantities, such as the mass matrix, Coriolis and centrifugal forces, transformation matrices and their derivatives. DART also provides efficient computation of Jacobian matrices for arbitrary body points and coordinate frames. The frame semantics of DART allows users to define arbitrary reference frames (both inertial and non-inertial) and use those frames to specify or request data. For air-tight code safety, forward kinematics and dynamics values are updated automatically through lazy evaluation, making DART suitable for real time controllers. In addition, DART gives provides flexibility to extend the API for embedding user-provided classes into DART data structures. Contacts and collisions are handled using an implicit time-stepping, velocity-based LCP (linear-complementarity problem) to guarantee non-penetration, directional friction, and approximated Coulomb friction cone conditions. DART has applications in robotics and computer animation because it features a multibody dynamic simulator and various kinematic tools for control and motion planning. Multibody dynamic simulation in DART is an extension of RTQL8, an open source software created by the Georgia Tech Graphics Lab.
+
+Since DART launched on Github in 2011, an active group of researchers in Computer Animation and Robotics has been constantly improving the usability of DART, enhancing the efficiency and accuracy of simulation, and adding numerous practical dynamic and kinematic tools. This document highlights a set of important features of DART based on Version 5.1.
+
+\paragraph{General}
+\begin{itemize}[leftmargin=*] \itemsep1pt \parskip0pt \parsep0pt
+  \item Open source under BSD licence written in C++.
+  \item Support Linux, Mac OSX, and Windows.
+  \item Fully integrated with Gazebo.
+  \item Support models described in URDF and SDF formats.
+  \item Provide default integration methods, semi-implicit Euler and RK4, as well as extensible API for other numerical integration methods.
+  \item Support multiple collision detectors: FCL and Bullet.
+  \item Support lazy evaluation and automatic update of kinematic and dynamic quantities.
+  \item Provide extensible API for embedding user-provided classes into DART data structures.
+  \item Support comprehensive recording of events in simulation history.
+  \item Support OpenGL and OpenSceneGraph.
+  \item Provide extensible API to interface with various optimization methods
+\end{itemize}
+
+
+% - Open source written in C++
+% - Supports all three operating systems
+% - Fully integrate with Gazebo
+% - Support URDF and SDF format
+% - Support multiple collision detectors
+% - Extensible numerical integration methods
+% - Support lazy evaluation and automatic updating of kinematic and dynamic terms: greatly improves code safety and often improves efficiency
+% - Fully extensible Addons and Nodes which allow you to embed your own classes into the kinematic and dynamic structures
+% - Perfect recording of events, which includes accounting for changes to internal properties and changes to user-defined Addons and Nodes
+% - Extensible GUI
+
+
+\paragraph{Kinematics}
+\begin{itemize}[leftmargin=*] \itemsep1pt \parskip0pt \parsep0pt
+  \item Support numerous types of Joint.
+  \item Support numerous primitive and arbitrary body shapes with customizable inertial and material properties.
+  \item Support flexible skeleton modeling: cloning and reconfiguring skeletons or subsections of a skeleton.
+  \item Provide comprehensive access to kinematic states (\eg transformation, position, velocity, or acceleration) of arbitrary entity and coordinate frames
+  \item Provide comprehensive access to various Jacobian matrices and their derivatives.
+  \item Support flexible conversion of coordinate frames.
+  \item A fully modular inverses kinematics framework
+  \item A plug-and-play hierarchical whole-body inverse kinematics solver
+\end{itemize}
+
+\paragraph{Dynamics}
+\begin{itemize}[leftmargin=*] \itemsep1pt \parskip0pt \parsep0pt
+  \item Achieve high performance for articulated dynamic systems using Lie Group representation and Featherstone hybrid algorithms.
+  \item Enforce joints between body nodes exactly using generalized coordinates.
+  \item Provide comprehensive API for dynamic quantities and their derivatives, such as mass matrix, Coriolis force, gravitational force, other external and internal forces.
+  \item Support both rigid and soft body nodes.
+  \item Model viscoelastic joint dynamics with joint friction and hard joint limits.
+  \item Support various types of actuators.
+  \item Handle contacts and collisions using an implicit LCP to guarantee non-penetration, directional friction, and approximated Coulomb friction cone conditions.
+  \item Support ''Island'' technique to subdivide constraint handling for efficient performance.
+  \item Support various Cartesian constraints and provide extensible API for user-defined constraints.
+  \item Provide multiple constraint solvers: Lemke method, Dantzig method, and PSG method.
+  \item Support dynamic systems with closed-loop structures.
+\end{itemize}
+% - High performance for articulated dynamic systems:Featherstone linear algorithm
+% - Enforce joints exactly: Lagrangian dynamics and generalized coordinates
+% - Support both rigid and soft body nodes
+% - Model joint dynamics: joint limits, elasticity, damping
+% - Support multiple constraint solvers
+% - Support Cartesian joint constraints
+% - Support closed-loop structure.
+% - API for dynamic quantities: Mass matrix, Coriolis force, gravitational force, other external and internal 
+% forces
+% - Support numerous types of actuator
