@@ -30,7 +30,7 @@ A BodyNode contains a set of customizable properties to define its kinematic and
 
 \subsection{Joint types}
 \label{sec:jointTypes}
-DART supports 10 types of joints. Each joint type has a fixed number of DOFs and a specific configuration domain. Some joint types require the user to define their unique properties. For example, the rotation axes of \textbf{RevoluteJoint}, \textbf{UniversalJoint} and \textbf{PlanarJoint} need to be specified when the joint is constructed. Likewise, the order of three axes ('xyz', 'zyx', etc) in an \textbf{EulerJoint} needs to be predefined. Note that Both \textbf{BallJoint} and \textbf{EulerJoint} have three DOFs and $SO(3)$ configuration domain. However, a \textbf{BallJoint} is represented by an exponential map while an \textbf{EulerJoint} is represented by three consecutive 1D rotational matrices. All joint types provided by DART are listed in Table \ref{tab:jointTypes}. 
+DART supports 10 types of joints. Each joint type has a fixed number of DOFs and a specific configuration domain. Some joint types require the user to define their unique properties. For example, the rotation axes of \textbf{RevoluteJoint}, \textbf{UniversalJoint} and \textbf{PlanarJoint} need to be specified when the joint is constructed. Likewise, the order of three axes (`xyz', `zyx', etc) in an \textbf{EulerJoint} needs to be predefined. Note that both \textbf{BallJoint} and \textbf{EulerJoint} are used to represent rotational motion in 3D space. However, a \textbf{BallJoint} is represented by an exponential map while an \textbf{EulerJoint} is represented by three consecutive 1D rotational matrices. All joint types provided by DART are listed in Table \ref{tab:jointTypes}.
 
 \begin{table}[h]
 \centering
@@ -41,21 +41,21 @@ DART supports 10 types of joints. Each joint type has a fixed number of DOFs and
   \hline
   BallJoint  &  3 & $SO(3)$  & \\
   \hline
-  EulerJoint & 3  & $SO(3)$ & 3-axis order \\
+  EulerJoint & 3  & $SO(2) \times SO(2) \times SO(2)$ & 3-axis order \\
   \hline
   FreeJoint  & 6 & $SE(3)$  &\\
   \hline
-  PlanarJoint & 3  & $R^2 \cup SO(1)$ & axis1 and axis2 \\
+  PlanarJoint & 3  & $SE(2)$ & axis1 and axis2 \\
   \hline
   PrismaticJoint & 1  & $R$ & axis \\
   \hline
-  RevoluteJoint & 2  & $SO(1)$ & axis \\
+  RevoluteJoint & 2  & $SO(2)$ & axis \\
   \hline
-  ScrewJoint & 1  & $R \cup SO(1)$  s.t. screw constraint & axis and pitch \\
+  ScrewJoint & 1  & $SO(2)$ & axis and pitch \\
   \hline
   TranslationalJoint & 3  & $R^3$ &  \\
   \hline
-  UniversalJoint & 2  & $SO(2)$ & axis1 and axis2 \\
+  UniversalJoint & 2  & $SO(2) \times SO(2)$ & axis1 and axis2 \\
   \hline
   WeldJoint & 0  & $\emptyset$ &  \\
   \hline
