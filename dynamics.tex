@@ -1,9 +1,51 @@
 \section{Dynamic Features}
+Physics simulation is the core of DART. The earlier versions of DART
+adopted the physics engine, RTQL8 \cite{}, for its Lagrangian dynamics
+and generalized coordinates. Later, we reimplemented the Featherstone
+algorithms using Lie group representation to largely improve the
+computation efficiency.
 
 \subsection{Lagrangian dynamics and generalized coordinates}
+DART is distinguished by its accuracy and stability due to its use of
+generalized coordinates to represent articulated rigid body systems,
+Featherstone’s Articulated Body Algorithm to compute the dynamics of
+motion, and Lie group for compact representation and derivation of
+dynamic equations.
+
+Articulated human motions can be described by a set of dynamic
+equations of motion of multibody systems. Since the direct application
+of Newton’s second law becomes difficult when a complex articulated
+rigid body system is considered, we use Lagrange’s equations derived
+from D’Alembert’s principle to describe the dynamics of motion. 
+\begin{equation}
+M(\vc{q})\ddot{\vc{q}} + C(\vc{q}, \dot{\vc{q}}) = \vc{Q},
+\end{equation}
+where $\vc{q}$ is the generalized coordinates that indicate the 
+configuration of the skeleton. $M(\vc{q})$ is the mass matrix,
+$C(\vc{q},\dot{\vc{q}})$ is the Coriolis and centrifugal term of the
+equation of motion, and $\vc{Q}$ is the vector of generalized forces
+for all the degrees of freedom in the system. For forward simulation
+
+Once we know how to compute the mass matrix, Coriolis and centrifugal
+terms, and generalized forces, we can compute the acceleration in
+generalized coordinates, $\ddot{\vc{q}}$ for forward dynamics. Conversely, if we
+are given $\ddot{\vc{q}}$ from a motion sequence, we can use these equations of
+motion to derive generalized forces for inverse dynamics. However,
+directly evaluating the mass matrix and Coriolis term is 
+computationally expensive, especially for applications that require
+real-time simulation. DART implements Featherstone's articulated rigid
+body algorithm to compute forward and inverse dynamics. In addition,
+DART uses Lie group representation to further improve the efficiency.
+
+\paragraph{Featherstone's algorithms.} In particular, we implement the
+recursive Newton-Euler algoritm (RNEA) for inverse dynamics and the
+articulated-body algorithm (ABA) for forward dynamics. These two
+algorithms are known for their $O(n)$ time with $n$ being the number of
+body nodes in the skeleton. 
+
 \paragraph{Lie group representation}
-\paragraph{Featherstone algorithms}
-\paragraph{API}
+Describe the high-level ideas of Lie group representation and its advantages.
+
 
 \subsection{Soft body simulation}
 

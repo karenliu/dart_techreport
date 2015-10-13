@@ -49,7 +49,7 @@ DART supports 10 types of joints. Each joint type has a fixed number of DOFs and
   \hline
   PrismaticJoint & 1  & $R$ & axis \\
   \hline
-  RevoluteJoint & 2  & $SO(2)$ & axis \\
+  RevoluteJoint & 1  & $SO(2)$ & axis \\
   \hline
   ScrewJoint & 1  & $SO(2)$ & axis and pitch \\
   \hline
@@ -253,4 +253,43 @@ _positions) const = 0;
 %   virtual const math::Jacobian getLocalJacobianTimeDeriv() const = 0;
 
 \subsection{Skeleton modeling}
+Building a complex skeleton from scratch can be very
+difficult and tedious. Often time, the developer may prefer to modify an
+existing skeleton described by a URDF or SDF file. DART provides many
+functions to facilitate skeleton editing summarized in the following
+table.
+
+\begin{table}[h]
+\centering
+\caption{Functions for Skeleton Modeling}
+\begin{tabular}{|L{3.3in}|L{2.7in}|}
+  \hline
+  \textbf{Function Example} & \textbf{Description} \\
+  \hline
+  bd1-$>$\textbf{remove}() & Remove BodyNode bd1 and its subtree from their Skeleton.  \\
+  \hline
+   bd1-$>$\textbf{moveTo}(bd2) & Move BodyNode bd1 and its subtree under BodyNode bd2.  \\
+  \hline
+ auto newSkel = bd1-$>$\textbf{split}("new skeleton") & Remove BodyNode bd1 and its subtree from their current Skeleton and move them into a newly created Skeleton named "new skeleton".  \\
+  \hline
+ bd1-$>$\textbf{changeParentJointType}$<$BallJoint$>$() & Change the joint type of BodyNode bd1's parent joint to BallJoint.  \\
+  \hline
+bd1-$>$\textbf{copyTo}(bd2) & Create a clone of BodyNode bd1 and its subtree
+                   and attach the clone to an existing BodyNode bd2. \\
+  \hline
+ auto newSkel = bd1-$>$\textbf{copyAs}("new skeleton") & Create a
+                                                         clone of
+                                                         BodyNode bd1
+                                                         and its
+                                                         subtree as a new skeleton named "new skeleton".  \\
+  \hline
+\end{tabular}
+\label{tab:skeletonEdit}
+\end{table}
+
+Some functions have optional parameters for more advanced modeling
+operations. For example, \textbf{moveTo} is templated by \textbf{JoinType} and
+can take in \textbf{Joint::Properties} as an argument, such as:
+bd1->moveTo<EulerJoint>(bd2, properties).
+
 \subsection{Inverse kinematics}
