@@ -8,9 +8,9 @@ Kinematic data structures in DART are designed to be comprehensive, extensible, 
 \caption{Tasks for each research aim.}
 \label{fig:skeleton}
 \end{figure*}
- In DART, an articulated dynamics model is represented by a \textbf{Skeleton}. A Skeleton is a tree structure that consists of \textbf{BodyNode}s which are connected by \textbf{Joint}s. Every Joint has a child BodyNode, and every BodyNode has a parent Joint. Even the root BodyNode has a Joint that attaches it to the World. For example, the human skeleton can be organized into a tree structure (Figure \ref{fig:skeleton}) with nodes representing BodyNodes and edges representing Joints. Depending on the joint type (Section \ref{sec:jointTypes}), each joint has a specific number of degrees of freedom (DOFs). For example, the hip joint can be modelled by a \textbf{EulerJoint} with three DOFs, while a knee joint can be modelled by a \textbf{RevoluteJoint} with one DOF. In this model, we select the pelvis to be the root BodyNode, which connects to the World via a \textbf{FreeJoint} with six DOFs.
+ In DART, an articulated dynamics model is represented by a \textbf{Skeleton}. A Skeleton is a tree structure that consists of \textbf{BodyNode}s which are connected by \textbf{Joint}s. Every Joint has a child BodyNode, and every BodyNode has a parent Joint. Even the root BodyNode has a Joint that attaches it to the \textbf{World}. For example, the human skeleton can be organized into a tree structure (Figure \ref{fig:skeleton}) with nodes representing BodyNodes and edges representing Joints. Depending on the joint type (Section \ref{sec:jointTypes}), each joint has a specific number of degrees of freedom (DOFs). For example, the hip joint can be modeled by an \textbf{EulerJoint} with three DOFs, while a knee joint can be modeled by a \textbf{RevoluteJoint} with one DOF. In this model, we select the pelvis to be the root BodyNode, which connects to the World via a \textbf{FreeJoint} with six DOFs.
 
-A kinematic chain is a sequence of transformations from one BodyNode to another in the Skeleton. Figure \ref{fig:parentChild}(a) illustrates the transformations between two intermediate BodyNodes denoted as Parent and Child. The coordinate frames of Parent, Child, and the joint between them are shown as the RGB arrows. Let $\vc{T}_{pj}$ be the transformation from the Parent frame to the joint frame and $\vc{T}_{cj}$ be the transformation from the Child frame to the joint frame. These two transformations are fixed and can be customized as part of the properties of the joint. The transformation of the joint $\vc{T}(\vc{q})$ is a function of the DOFs, $\vc{q}$, associated with the joint. In the case of the hip joint, $\vc{q}$ is a 3x1 vector consisting of hip rotation angles in three dimensions. Thus, the transformation from the Parent frame to the Child frame is denoted by $\vc{T}_{pj}\vc{T}(\vc{q})\vc{T}_{cj}^T$.
+A kinematic chain is a sequence of transformations from one BodyNode to another in the Skeleton. Figure \ref{fig:parentChild}(a) illustrates the transformations between two intermediate BodyNodes denoted as Parent and Child. The coordinate frames of Parent, Child, and the joint between them are shown as the RGB arrows. Let $\vc{T}_{pj}$ be the transformation from the Parent frame to the joint frame and $\vc{T}_{cj}$ be the transformation from the Child frame to the joint frame. These two transformations are fixed and can be customized as part of the \textbf{Joint::Properties} of the joint. The transformation of the joint $\vc{T}(\vc{q})$ is a function of the DOFs, $\vc{q}$, associated with the joint. In the case of the hip joint, $\vc{q}$ is a 3x1 vector consisting of hip rotation angles in three dimensions. Thus, the transformation from the Parent frame to the Child frame is denoted by $\vc{T}_{pj}\vc{T}(\vc{q})\vc{T}_{cj}^T$.
 
 \begin{figure*}
 \centering
@@ -20,24 +20,27 @@ A kinematic chain is a sequence of transformations from one BodyNode to another 
 \end{figure*}
 
 
-\subsection{BodyNode properties}
-A BodyNode contains a set of customizable properties to define its kinematic and dynamic behaviors.
+\subsection{BodyNode Properties}
+A BodyNode contains a set of customizable \textbf{BodyNode::Properties} to define its kinematic and dynamic behaviors.
 \begin{itemize}[leftmargin=*] \itemsep1pt \parskip0pt \parsep0pt
   \item{\textbf{Inertial properties:}} The user can define the mass, the position of the center of mass in the BodyNode frame, and the moment of inertia around the center of mass in the BodyNode frame. The ellipsoids in Figure \ref{fig:parentChild}(b) illustrate the center of mass ($\vc{c}$) and the moment of inertia defined in the BodyNode frame.
+  
+\todo[MXG]{We should probably mention ShapeNode when discussing geometry}
+
   \item{\textbf{Geometry properties:}} The user can associate a set of \textbf{Shape}s with a BodyNode. Each shape has its own geometry information used by rendering and collision detection routines. DART supports a few primitive shapes, box, ellipsoid, cylinder, plane, line segment, in addition to arbitrary 3D polygons. Each shape can be defined in its own coordinate frame. The spatial relation between the Shape and its associated BodyNode is defined by a fixed transformation $\vc{T}_g$ (Figure \ref{fig:parentChild}(b)).
   \item{\textbf{Collision properties:}} The user can set the friction coefficient and the coefficient of restitution of a BodyNode, as well as the flag that determines whether the BodyNode is collidable.
 \end{itemize}
 
 \subsection{Joint types}
 \label{sec:jointTypes}
-DART supports 10 types of joints. Each joint type has a fixed number of DOFs and a specific configuration domain. Some joint types require the user to define their unique properties. For example, the rotation axes of \textbf{RevoluteJoint}, \textbf{UniversalJoint} and \textbf{PlanarJoint} need to be specified when the joint is constructed. Likewise, the order of three axes (`xyz', `zyx', etc) in an \textbf{EulerJoint} needs to be predefined. Note that both \textbf{BallJoint} and \textbf{EulerJoint} are used to represent rotational motion in 3D space. However, a \textbf{BallJoint} is represented by an exponential map while an \textbf{EulerJoint} is represented by three consecutive 1D rotational matrices. All joint types provided by DART are listed in Table \ref{tab:jointTypes}.
+DART supports 10 types of joints. Each joint type has a fixed number of DOFs and a specific configuration domain. Some joint types require the user to define their \textbf{UniqueProperties}. For example, the rotation axes of \textbf{RevoluteJoint}, \textbf{UniversalJoint} and \textbf{PlanarJoint} need to be specified when the joint is constructed. Likewise, the order of three axes (`xyz', `zyx', etc) in an \textbf{EulerJoint} needs to be predefined. These properties can be changed at any time, and the kinematics and dynamics calculations will automatically adjust to account for those changes. The only potential negative impact would be non-physical discontinuities if property changes are made during a simulation. Note that both \textbf{BallJoint} and \textbf{EulerJoint} are used to represent rotational motion in 3D space. However, a \textbf{BallJoint} is represented by an exponential map while an \textbf{EulerJoint} is represented by three consecutive 1D rotational matrices. All joint types provided by DART are listed in Table \ref{tab:jointTypes}.
 
 \begin{table}[h]
 \centering
 \caption{Joint Types}
 \begin{tabular}{|c|c|c|c|}
   \hline
-  \textbf{Name} & \textbf{\#DOF} & \textbf{Configuration Domain}  & \textbf{Properties}\\
+  \textbf{Name} & \textbf{\#DOF} & \textbf{Configuration Domain}  & \textbf{Unique Properties}\\
   \hline
   BallJoint  &  3 & $SO(3)$  & \\
   \hline
