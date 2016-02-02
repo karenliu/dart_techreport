@@ -67,7 +67,124 @@ DART supports 10 types of joints. Each joint type has a fixed number of DOFs and
 \end{table}
 
 \subsection{Frame semantics}
-\red{Grey}
+Mathematical formulae are often expressed in terms of reference frames. This can make it difficult to directly program the formulae if your kinematic library is less expressive than the mathematical language. If a kinematic library only offers a frame's transformation with respect to its parent frame or the world frame, then you may need to repeatedly compute relative transformations between two arbitrary frames, which can easily introduce errors due to typos or confusion. Worse yet, the formulae for computing relative velocities and relative accelerations in non-inertial reference frames can be exceedingly complex and difficult to implement correctly. Take for example the equation to compute the relative linear acceleration of \textbf{Frame B} relative to \textbf{Frame A} in the coordinates of \textbf{Frame F}:
+
+\begin{equation}
+\label{eqn:rel_accel}
+^{F}a_{BA} = ^{F}R_{O} ( ^{O}a_{B} - ^{O}a_{A} - ^{O}\dot{\omega}_{A} \times ^{O}p_{BA} - 2 ^{O}\omega_{BA} \times ^{O}v_{BA} - ^{O}\omega_A \times (^{O}\omega_{A} \times ^{O}p_{BA})
+\end{equation}
+
+Any small mistake, such as mixing up a plus with a minus or mixing up two of the variables, will produce potentially devastatingly incorrect results. Even the individual variables in the above expression each has a non-trivial formula to compute it, which must be implemented perfectly in order for any computations to come out correctly. These issues can pose considerable barriers to writing complex controller logic which is reliable enough to safely run on expensive robots.
+
+KIDO addresses this issue by providing frame semantics. The forward kinematics of KIDO are handled by the underlying \textbf{Frame} class. The Frame class is a pure virtual class which provides the user with an interface to compute the kinematic values of a frame with respect to any other arbitrary frame. So instead of needing to implement equation \ref{eqn:rel_accel}, KIDO allows you to simply call the function:
+
+\begin{lstlisting}
+B->getLinearAcceleration(A,F);
+\end{lstlisting}
+
+Here are a few examples of what the Frame semantics API looks like:
+
+\begin{lstlisting}
+// Transformation Matrix
+Eigen::Isometry3d Frame::getWorldTransform() const;
+Eigen::Isometry3d Frame::getTransform(
+    const Frame* withRespectTo = Frame::World()) const;
+
+// Velocity
+Eigen::Vector3d getLinearVelocity(
+    const Frame* relativeTo = Frame::World(),
+    const Frame* inCoordinatesOf = Frame::World()) const;
+Eigen::Vector3d getAngularVelocity(
+    const Frame* relativeTo = Frame::World(),
+    const Frame* inCoordinatesOf = Frame::World()) const;
+    
+// Acceleration
+Eigen::Vector3d getLinearAcceleration(
+    const Frame* relativeTo = Frame::World(),
+    const Frame* inCoordinatesOf = Frame::World()) const;
+\end{lstlisting}
+
+Note that an \textbf{Eigen::Isometry3d} is a specialized type of transformation matrix which exists in SE3.
+
+Since \textbf{Frame} is a pure virtual interface class, we also need to have concrete implementations of it in order to perform forward kinematics. Most of the functions in \textbf{Frame} are actually implemented already; there are only five functions which derived classes need to implement:
+
+\begin{lstlisting}
+virtual const Eigen::Isometry3d& getRelativeTransform() const = 0;
+virtual const Eigen::Vector6d& getRelativeSpatialVelocity() const = 0;
+virtual const Eigen::Vector6d& getRelativeSpatialAcceleration() const = 0;
+virtual const Eigen::Vector6d& getPrimaryRelativeAcceleration() const = 0;
+virtual const Eigen::Vector6d& getPartialAcceleration() const = 0;
+\end{lstlisting}
+
+In the first three functions, the term \textit{Relative} means the quantity is relative to its parent frame. The first three functions are all that is needed to perform forward kinematics. The last two functions are used to reduce the number of computations when performing Featherstone's Articulated Body Algorithm for forward dynamics.
+
+KIDO currently provides four concrete implementations of the \textbf{Frame} class:
+
+\subsubsection{BodyNode Frame Implementation}
+
+The \textbf{BodyNode} class is used to define the kinematic structure of a \textbf{Skeleton}. Because of this, it is very helpful for \textbf{BodyNode} to inherit the \textbf{Frame} class and be compatible with all of its forward kinematics and frame semantics features. The transformation, velocity, and acceleration of a \textbf{BodyNode} relative to its parent \textbf{Frame} is fully determined by its parent \textbf{Joint}. In the general case, it is not possible to explicitly move a \textbf{BodyNode} to an arbitrary transformation or give it an arbitrary velocity or acceleration. These physical quantities are all constrained by the parent \textbf{Joint} of the \textbf{BodyNode} as well as every \textbf{Joint} that it descends from. To achieve an arbitrary transformation for a \textbf{BodyNode}, KIDO offers an \textbf{InverseKinematics} module discussed later in this report \todo[MXG]{Link to InverseKinematics section}. KIDO does not currently offer an inverse differential kinematics module, but implementing one should be straightforward with the tools that KIDO does provide.
+
+The BodyNode class and how to use it will be discussed in far greater detail throughout the rest of this report. In many ways, it is the cornerstone class of KIDO.
+
+\subsubsection{SimpleFrame Implementation}
+
+In some cases, it might be too cumbersome to be constrained by a \textbf{Joint} the way \textbf{BodyNode} is. If you want to have a reference \textbf{Frame} with a completely arbitrary transform, velocity, and acceleration, then being constrained by \textbf{Joint} can make things more difficult. Also, if you want your frame to represent a reference frame which is not a physical body, then the \textbf{BodyNode} class would be overkill.
+
+For these reasons, we offer the \textbf{SimpleFrame} class. The \textbf{SimpleFrame} class is simply a Frame; it does not have any collision or inertial properties and therefore cannot be simulated. However, what \textbf{SimpleFrame} does offer is the ability to arbitrarily set its transformations, velocities, and accelerations. This can be done with the following functions:
+
+\begin{lstlisting}
+// Set transformation relative to parent Frame
+void SimpleFrame::setRelativeTransform(const Eigen::Isometry3d& newRelTransform);
+
+// Set transformation relative to any other Frame
+void SimpleFrame::setTransform(
+    const Eigen::Isometry3d& newTransform,
+    const Frame* withRespectTo = Frame::World());
+    
+// Set the spatial velocity relative to the parent Frame, in the coordinates of this Frame
+void SimpleFrame::setRelativeSpatialVelocity(
+    const Eigen::Vector6d& newSpatialVelocity);
+    
+// Set the spatial velocity relative to the parent Frame, in the coordinates of any Frame
+void SimpleFrame::setRelativeSpatialVelocity(
+    const Eigen::Vector6d& newSpatialVelocity,
+    const Frame* inCoordinatesOf);
+    
+// Set the spatial acceleration relative to the parent Frame, in the coordinates of this Frame
+void SimpleFrame::setRelativeSpatialAcceleration(
+    const Eigen::Vector6d& newSpatialAcceleration);
+
+// Set the spatial acceleration relative to the parent Frame, in the coordinates of any Frame
+void SimpleFrame::setRelativeSpatialAcceleration(
+    const Eigen::Vector6d& newSpatialAcceleration,
+    const Frame* inCoordinatesOf);
+\end{lstlisting}
+
+It is important to note that, by default, spatial quantities like spatial velocity and spatial acceleration should be given in the coordinates of the frame that they belong to (\textbf{not} in the coordinates of the parent frame). But KIDO does provide convenience functions that allow you to represent the spatial quantities in whichever coordinates you would like to. However, they still must represent the quantities \textbf{relative to} the parent, even if they're expressed in the coordinates of a different frame (i.e. the values are rotated).
+
+For those who are not familiar or not comfortable with spatial quantities, KIDO also offers an API for classic 3D vectors, like those used in the traditional Newton-Euler equations of motion:
+
+\begin{lstlisting}
+void SimpleFrame::setClassicDerivatives(
+    const Eigen::Vector3d& linearVelocity      = Eigen::Vector3d::Zero(),
+    const Eigen::Vector3d& angularVelocity     = Eigen::Vector3d::Zero(),
+    const Eigen::Vector3d& linearAcceleration  = Eigen::Vector3d::Zero(),
+    const Eigen::Vector3d& angularAcceleration = Eigen::Vector3d::Zero());
+\end{lstlisting}
+
+Even though KIDO provides an API that supports both spatial and classic vectors, under the hood it only utilizes spatial vectors, because spatial vectors require fewer operations for forward differential kinematics. This also means that only spatial vectors get stored under the hood, and therefore if a user wants to set the velocity and/or acceleration using classic vectors, then all classic vectors must be provided simultaneously, or else the final result would depend on the order in which the classic vectors get set, which would be confusing and undesirable behavior.
+
+\subsubsection{FixedFrame Implementation}
+
+The \textbf{BodyNode} frame implementation is constrained by Joints while the \textbf{SimpleFrame} frame implementation is completely unconstrained. The \textbf{FixedFrame} implementation allows the user complete freedom in setting the initial relative transform, but after that it may not move. Its relative velocity and relative acceleration vectors are always exactly zero. \textbf{FixedFrame} instances do not even offer a way to change the relative transform after construction.
+
+However, it is still possible for a class to inherit the \textbf{FixedFrame} class, and the inheriting class does have the authority to alter the relative transform. For example, the \textbf{EndEffector} class is a derivative of \textbf{FixedFrame} and allows the user to change the relative transform freely. But no matter how the relative transform gets changed, the relative velocity and relative acceleration will always be reported as zero, so altering a relative transform during a simulation could result in non-physical discontinuities.
+
+\subsubsection{WorldFrame Implementation}
+
+The \textbf{WorldFrame} is a very special case of the \textbf{Frame} class. It always returns identity for its relative transformation as well as its world transformation. Its velocities and accelerations are always zero. It is a singleton class which only gets created once per program, and every kinematic chain descends from it. To access the \textbf{WorldFrame}, simply call the function \textbf{Frame::World()}.
+
+Conventional wisdom and good software engineering practices dictate that singletons should be avoided almost always. In the case of the \textbf{WorldFrame}, it is designed to be a read-only object whose values are never changed. Therefore it is not at risk of issues related to race conditions or unexpected interdependencies within the code.
 
 \subsection{Kinematic state of the system}
 DART provides a variety of ways to query the position and the velocity of the system in generalized, Cartesian, and spatial coordinates. 
