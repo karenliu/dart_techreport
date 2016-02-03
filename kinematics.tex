@@ -74,7 +74,7 @@ Mathematical formulae are often expressed in terms of reference frames. This can
 ^{F}a_{BA} = ^{F}R_{O} ( ^{O}a_{B} - ^{O}a_{A} - ^{O}\dot{\omega}_{A} \times ^{O}p_{BA} - 2 ^{O}\omega_{BA} \times ^{O}v_{BA} - ^{O}\omega_A \times (^{O}\omega_{A} \times ^{O}p_{BA})
 \end{equation}
 
-Any small mistake, such as mixing up a plus with a minus or mixing up two of the variables, will produce potentially devastatingly incorrect results. Even the individual variables in the above expression each has a non-trivial formula to compute it, which must be implemented perfectly in order for any computations to come out correctly. These issues can pose considerable barriers to writing complex controller logic which is reliable enough to safely run on expensive robots.
+Any small mistake, such as mixing up a plus with a minus or switching two of the variables, will produce potentially devastatingly incorrect results. Even the individual variables in the above expression each has a non-trivial formula to compute it, which must be implemented perfectly in order for any computations to come out correctly. These issues can pose considerable barriers to writing complex controller logic which is reliable enough to safely run on expensive robots.
 
 KIDO addresses this issue by providing frame semantics. The forward kinematics of KIDO are handled by the underlying \textbf{Frame} class. The Frame class is a pure virtual class which provides the user with an interface to compute the kinematic values of a frame with respect to any other arbitrary frame. So instead of needing to implement equation \ref{eqn:rel_accel}, KIDO allows you to simply call the function:
 
@@ -104,7 +104,7 @@ Eigen::Vector3d getLinearAcceleration(
     const Frame* inCoordinatesOf = Frame::World()) const;
 \end{lstlisting}
 
-Note that an \textbf{Eigen::Isometry3d} is a specialized type of transformation matrix which exists in SE3.
+Note that an \textbf{Eigen::Isometry3d} represents a specialized type of transformation matrix which exists in SE3.
 
 Since \textbf{Frame} is a pure virtual interface class, we also need to have concrete implementations of it in order to perform forward kinematics. Most of the functions in \textbf{Frame} are actually implemented already; there are only five functions which derived classes need to implement:
 
@@ -120,9 +120,9 @@ In the first three functions, the term \textit{Relative} means the quantity is r
 
 KIDO currently provides four concrete implementations of the \textbf{Frame} class:
 
-\subsubsection{BodyNode Frame Implementation}
+\subsubsection{BodyNode Implementation}
 
-The \textbf{BodyNode} class is used to define the kinematic structure of a \textbf{Skeleton}. Because of this, it is very helpful for \textbf{BodyNode} to inherit the \textbf{Frame} class and be compatible with all of its forward kinematics and frame semantics features. The transformation, velocity, and acceleration of a \textbf{BodyNode} relative to its parent \textbf{Frame} is fully determined by its parent \textbf{Joint}. In the general case, it is not possible to explicitly move a \textbf{BodyNode} to an arbitrary transformation or give it an arbitrary velocity or acceleration. These physical quantities are all constrained by the parent \textbf{Joint} of the \textbf{BodyNode} as well as every \textbf{Joint} that it descends from. To achieve an arbitrary transformation for a \textbf{BodyNode}, KIDO offers an \textbf{InverseKinematics} module discussed in section \ref{sec:ik}. KIDO does not currently offer an inverse \textit{differential} kinematics module, but implementing one should be straightforward with the tools that KIDO does provide.
+The \textbf{BodyNode} class is used to define the kinematic structure of a \textbf{Skeleton}. Because of this, it is very helpful for \textbf{BodyNode} to inherit the \textbf{Frame} class and be compatible with all of its forward kinematics and frame semantics features. The transformation, velocity, and acceleration of a \textbf{BodyNode} relative to its parent \textbf{Frame} is fully determined by its parent \textbf{Joint}. In the general case, it is not possible to explicitly move a \textbf{BodyNode} to an arbitrary transformation or give it an arbitrary velocity or acceleration. These physical quantities are all constrained by the parent \textbf{Joint} of the \textbf{BodyNode} as well as every \textbf{Joint} that it descends from. To achieve an arbitrary transformation for a \textbf{BodyNode}, KIDO offers an \textbf{InverseKinematics} module discussed in section \ref{sec:ik}. KIDO does not currently offer an inverse \textit{differential} kinematics module, but implementing one is straightforward with the tools that KIDO does provide.
 
 The BodyNode class and how to use it will be discussed in far greater detail throughout the rest of this report. In many ways, it is the cornerstone class of KIDO.
 
@@ -182,9 +182,9 @@ However, it is still possible for a class to inherit the \textbf{FixedFrame} cla
 
 \subsubsection{WorldFrame Implementation}
 
-The \textbf{WorldFrame} is a very special case of the \textbf{Frame} class. It always returns identity for its relative transformation as well as its world transformation. Its velocities and accelerations are always zero. It is a singleton class which only gets created once per program, and every kinematic chain descends from it. To access the \textbf{WorldFrame}, simply call the function \textbf{Frame::World()}.
+The \textbf{WorldFrame} is a very special case of the \textbf{Frame} class. It always returns identity for its relative transformation as well as its world transformation. Its velocities and accelerations are always zero. Its parent frame is itself. It is a singleton class which only gets created once per program, and every kinematic chain ultimately descends from it. To access the \textbf{WorldFrame}, simply call the function \textbf{Frame::World()}.
 
-Conventional wisdom and good software engineering practices dictate that singletons should be avoided almost always. In the case of the \textbf{WorldFrame}, it is designed to be a read-only object whose values are never changed. Therefore it is not at risk of issues related to race conditions or unexpected interdependencies within the code.
+Conventional wisdom and good software engineering practices dictate that singletons should be avoided almost always. In the case of the \textbf{WorldFrame}, it is designed to be a read-only object whose values are never changed. In some sense, it is used as a symbol rather than an object instance. Therefore it is not at risk of issues related to race conditions, unexpected interdependencies within the code, or any of the other pitfalls that are commonly associated with singletons.
 
 \subsection{Kinematic state of the system}
 DART provides a variety of ways to query the position and the velocity of the system in generalized, Cartesian, and spatial coordinates. 
@@ -382,6 +382,8 @@ math::Jacobian getJacobian(
     const Frame* _inCoordinatesOf) const;
 \end{lstlisting}
 
+\paragraph{JacobianNode.} A generalization of the \textbf{BodyNode} API is available via the interface class \textbf{JacobianNode}. Arbitrary \textbf{Node}s in KIDO are able to inherit the \textbf{JacobianNode} class and utilize the exact same API that \textbf{BodyNode} provides. \textbf{Node}s are further explained in section \todo[MXG]{CITE NODE SECTION HERE}. An example of a \textbf{JacobianNode} class (besides BodyNode) is the \textbf{EndEffector} class, which allows users to specify a \textbf{FixedFrame} that is rigidly attached to a \textbf{BodyNode}. With that, Jacobians can be computed for arbitrary child transforms of a \textbf{BodyNode}.
+
 \paragraph{Joint.} Local Jacobian functions are also available for
 the \textbf{Joint} class. The number of columns of the Jacobian depends on the
 number of DOFs of the joint. For example, a BallJoint returns a $6
@@ -426,18 +428,18 @@ table.
   \hline
    bd1-$>$\textbf{moveTo}(bd2) & Move BodyNode bd1 and its subtree under BodyNode bd2.  \\
   \hline
- auto newSkel = bd1-$>$\textbf{split}("new skeleton") & Remove BodyNode bd1 and its subtree from their current Skeleton and move them into a newly created Skeleton named "new skeleton".  \\
+ auto newSkel = bd1-$>$\textbf{split}(``new skeleton'') & Remove BodyNode bd1 and its subtree from their current Skeleton and move them into a newly created Skeleton named ``new skeleton''.  \\
   \hline
  bd1-$>$\textbf{changeParentJointType}$<$BallJoint$>$() & Change the joint type of BodyNode bd1's parent joint to BallJoint.  \\
   \hline
 bd1-$>$\textbf{copyTo}(bd2) & Create a clone of BodyNode bd1 and its subtree
                    and attach the clone to an existing BodyNode bd2. \\
   \hline
- auto newSkel = bd1-$>$\textbf{copyAs}("new skeleton") & Create a
+ auto newSkel = bd1-$>$\textbf{copyAs}(``new skeleton'') & Create a
                                                          clone of
                                                          BodyNode bd1
                                                          and its
-                                                         subtree as a new skeleton named "new skeleton".  \\
+                                                         subtree as a new skeleton named ``new skeleton''.  \\
   \hline
 \end{tabular}
 \label{tab:skeletonEdit}
@@ -446,7 +448,45 @@ bd1-$>$\textbf{copyTo}(bd2) & Create a clone of BodyNode bd1 and its subtree
 Some functions have optional parameters for more advanced modeling
 operations. For example, \textbf{moveTo} is templated by \textbf{JoinType} and
 can take in \textbf{JointType::Properties} as an argument, such as:
+\begin{lstlisting}
+EulerJoint::Properties properties;
+// ... modify properties here ... //
 bd1->moveTo<EulerJoint>(bd2, properties).
+\end{lstlisting}
 
 \subsection{Inverse Kinematics}
 \label{sec:ik}
+Robotics and graphics applications often need fast and reliable inverse kinematics for controllers, planners, and animation. Inverse kinematics is any procedure which finds a set of generalized positions that allow an articulated body to satisfy some set of kinematic constraints. To put this in simpler terms, a common example of inverse kinematics would be to find a set joint angles that can place an end effector (a.k.a.\ robot hand) at a desired transformation. This can be thought of as the inverse process of forward kinematics: Forward Kinematics computes the transformation of a body given a set of joint angles, so Inverse Kinematics computes a set of joint angles given a transformation for a body.
+
+One of the challenging aspects of Inverse Kinematics is that there are many approaches for performing it, and each approach has strengths and weaknesses which may depend on the context in which they are being used. Here are a few popular examples:
+
+\paragraph{\underline{Jacobian Transpose Method}} simply applies the transpose of the Jacobian matrix to an error vector and iterates until convergence, for example using gradient descent. This method is computationally inexpensive which allows it to be fast, and it is also very numerically stable. However, it tends to be imprecise, which might make it unsuitable for high-performance applications.
+
+\paragraph{Inverse Jacobian Method} simply applies the inverse of the Jacobian matrix to an error vector and iterates until convergence. Computing the inverse of the Jacobian can be costly if the Jacobian is high-dimensional, and this method is very numerically unstable around singular configurations. However, it tends to be precise when it is not close to singularities. Another restriction of this method is that the error vector needs to match the dimensionality of the joint space, which restricts when this method can be applied
+
+\paragraph{Pseudoinverse Jacobian Method} is similar to the Inverse Jacobian Method except that it uses a pseudoinverse of the Jacobian instead of a normal inverse. This allows it to be applied in cases where the dimensionality of the error vector does not match the dimensionality of the joint space.
+
+\paragraph{\underline{Damped Least Squares Pseudoinverse Jacobian Method}} is similar to the Pseudoinverse Jacobian Method, except it adds damping terms when computing the pseudoinverse. This allows the method to be robust and numerically stable around singularities with a very small penalty to the method's overall precision compared to the normal Pseudoinverse Jacobian Method.
+
+\paragraph{Selectively Damped Least Squares Method\cite{Buss2005sdls}} is similar to Damped Least Squares method except that instead of always damping with a fixed value, it adjusts the magnitude of the damping based on how close the generalized positions are to a singular configuration. This improves the precision compared to the standard Damped Least Squares method, but with the penalty of a slightly higher computational cost.
+
+\paragraph{Analytical (a.k.a.\ Closed-Form) Solutions} are symbolic expressions which directly compute the solutions to an inverse kinematics problem. Unlike the previously mentioned methods, analytical solutions do not rely on iterating. They have perfect numerical precision, are typically much faster than iterative methods, and cannot get caught in local minima. Analytical solutions can even recognize when a goal is unreachable by the kinematic structure and provide the ``closest'' solution to what was asked for. The key disadvantage of analytical solutions is that they do not exist for all kinematic structures, and even when one does exist, it may still be prohibitively difficult to find. Conversely, the iterative methods mentioned above are generalizable to all kinematic structures.
+
+\paragraph{} And these are only the most popular methods; others approaches may also exist. Despite any conceptual similarities between these methods, the implementation of each one tends to be drastically different. Each one may need to be tuned to each application that it gets used for. It is for this reason that finding a completely general inverse kinematics library is difficult. This is also why so many people resort to creating their own from scratch. KIDO seeks to break this pattern. Instead of simply providing an intransigent inverse kinematics solver, we offer an entire framework for performing inverse kinematics. This framework allows the user to freely swap out its solution finding method, and it even allows the user to create and plug in their own solution finding method. There is also a more advanced interface which allows users to plug in analytical solutions and access the features which are unique to analytical methods. KIDO comes pre-packaged with Jacobian Transpose and Damped Least Squares Pseudoinverse methods (underlined above). We do not currently offer any analytical solutions out of the box.
+
+Besides variation in the methods that are used to solve inverse kinematics problems, there can also be a great deal of variation in the methods that are used to compute an error vector. In most cases, the error vector of an inverse kinematics problem is a 6$\times$1 vector where three components refer to rotational error and the other three refer to translational error. For lower dimensional spaces, such as a planar robot, the vector might have fewer dimensions. When there are multiple bodies that have kinematic constraints, the vector might have more dimensions. In KIDO's Inverse Kinematics framework, we expect each error method to produce a 6$\times$1 vector. If fewer components are needed, then the method should fill in zero for each extra component. If multiple bodies have kinematic constraints, then you can plug in an error method for each body, and the hierarchical inverse kinematics solver can coordinate them.
+
+The constraint functions that compute error vectors can also take on many forms. For example, there might be a zero-dimensional constraint manifold such as \ref{fig:ik1} where the translation and rotation of the robot's left hand is fully constrained to the target transformation \todo[MXG]{technically this is not a zero-dimensional constraint manifold since it can move its body around, so I should make a better example}. Or there may be a three-dimensional manifold like in \ref{fig:ik2} where the feet are constrained in height, pitch, and roll, but they are free to move across the surface of the floor and yaw. Or there could be a four-dimensional manifold like in \ref{fig:ik3} where the robot's end effector needs to touch the surface of the sphere, but it may rotate however it pleases.
+
+\begin{figure}
+  \centering
+  \subfigure[][\label{fig:ik1}Fully constrained end effector]{\includegraphics[width=0.48\textwidth]{fig/ik1.png}}
+  \subfigure[][\label{fig:ik2}Flat feet constraint]{\includegraphics[width=0.48\textwidth]{fig/ik2.png}}
+  \subfigure[][\label{fig:ik3}Sphere touching constraint]{\includegraphics[width=0.48\textwidth]{fig/ik3.png}}
+  \caption{Examples of various inverse kinematics constraints}
+\end{figure}
+
+
+
+
+
