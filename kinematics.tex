@@ -122,7 +122,7 @@ KIDO currently provides four concrete implementations of the \textbf{Frame} clas
 
 \subsubsection{BodyNode Frame Implementation}
 
-The \textbf{BodyNode} class is used to define the kinematic structure of a \textbf{Skeleton}. Because of this, it is very helpful for \textbf{BodyNode} to inherit the \textbf{Frame} class and be compatible with all of its forward kinematics and frame semantics features. The transformation, velocity, and acceleration of a \textbf{BodyNode} relative to its parent \textbf{Frame} is fully determined by its parent \textbf{Joint}. In the general case, it is not possible to explicitly move a \textbf{BodyNode} to an arbitrary transformation or give it an arbitrary velocity or acceleration. These physical quantities are all constrained by the parent \textbf{Joint} of the \textbf{BodyNode} as well as every \textbf{Joint} that it descends from. To achieve an arbitrary transformation for a \textbf{BodyNode}, KIDO offers an \textbf{InverseKinematics} module discussed in section \ref{sec:ik}. KIDO does not currently offer an inverse differential kinematics module, but implementing one should be straightforward with the tools that KIDO does provide.
+The \textbf{BodyNode} class is used to define the kinematic structure of a \textbf{Skeleton}. Because of this, it is very helpful for \textbf{BodyNode} to inherit the \textbf{Frame} class and be compatible with all of its forward kinematics and frame semantics features. The transformation, velocity, and acceleration of a \textbf{BodyNode} relative to its parent \textbf{Frame} is fully determined by its parent \textbf{Joint}. In the general case, it is not possible to explicitly move a \textbf{BodyNode} to an arbitrary transformation or give it an arbitrary velocity or acceleration. These physical quantities are all constrained by the parent \textbf{Joint} of the \textbf{BodyNode} as well as every \textbf{Joint} that it descends from. To achieve an arbitrary transformation for a \textbf{BodyNode}, KIDO offers an \textbf{InverseKinematics} module discussed in section \ref{sec:ik}. KIDO does not currently offer an inverse \textit{differential} kinematics module, but implementing one should be straightforward with the tools that KIDO does provide.
 
 The BodyNode class and how to use it will be discussed in far greater detail throughout the rest of this report. In many ways, it is the cornerstone class of KIDO.
 
@@ -195,25 +195,47 @@ Eigen::VectorXd MetaSkeleton::getPositions() const;
 Eigen::VectorXd MetaSkeleton::getVelocities() const;
 
 // Cartesian coordinates
-Eigen::Isometry3d Frame::getTransform(const Frame* _withRespectTo = Frame::World(), const Frame* _inCoordinatesOf = Frame::World()) const;
-Eigen::Vector3d Frame::getLinearVelocity(const Eigen::Vector3d& _offset, const Frame* _relativeTo = Frame::World(), const Frame* _inCoordinatesOf = Frame::World()) const;
-Eigen::Vector3d Frame::getAngularVelocity(const Frame* _relativeTo = Frame::World(), const Frame* _inCoordinatesOf = Frame::World()) const;
-Eigen::Vector3d Skeleton::getCOM(const Frame* _withRespectTo = Frame::World()) const override;
-Eigen::Vector3d Skeleton::getCOMLinearVelocity(const Frame* _relativeTo = Frame::World(), const Frame* _inCoordinatesOf = Frame::World()) const override;
-Eigen::Vector3d BodyNode::getCOM(const Frame* _withRespectTo = Frame::World()) const;
-Eigen::Vector3d BodyNode::getCOMLinearVelocity(const Frame* _relativeTo = Frame::World(), const Frame* _inCoordinatesOf = Frame::World()) const;
+Eigen::Isometry3d Frame::getTransform(
+    const Frame* withRespectTo = Frame::World(), 
+    const Frame* inCoordinatesOf = Frame::World()) const;
+    
+Eigen::Vector3d Frame::getLinearVelocity(
+    const Eigen::Vector3d& offset, 
+    const Frame* relativeTo = Frame::World(), 
+    const Frame* inCoordinatesOf = Frame::World()) const;
+    
+Eigen::Vector3d Frame::getAngularVelocity(
+    const Frame* relativeTo = Frame::World(), 
+    const Frame* inCoordinatesOf = Frame::World()) const;
+    
+Eigen::Vector3d Skeleton::getCOM(
+    const Frame* withRespectTo = Frame::World()) const override;
+    
+Eigen::Vector3d Skeleton::getCOMLinearVelocity(
+    const Frame* relativeTo = Frame::World(), 
+    const Frame* inCoordinatesOf = Frame::World()) const override;
+    
+Eigen::Vector3d BodyNode::getCOM(
+    const Frame* withRespectTo = Frame::World()) const;
+    
+Eigen::Vector3d BodyNode::getCOMLinearVelocity(
+    const Frame* relativeTo = Frame::World(), 
+    const Frame* inCoordinatesOf = Frame::World()) const;
 
 // Spatial coordinates
-Eigen::Vector6d Frame::getSpatialVelocity(const Eigen::Vector3d& _offset, const Frame* _relativeTo, const Frame* _inCoordinatesOf) const;
+Eigen::Vector6d Frame::getSpatialVelocity(
+    const Eigen::Vector3d& offset, 
+    const Frame* relativeTo, 
+    const Frame* inCoordinatesOf) const;
 \end{lstlisting}
 
 For  example, if one wishes to know the transformation of the left
-hand from the left upper arm expressed in the coordinate frame of the
+hand relative to the left upper arm expressed in the coordinate frame of the
 pelvis, it can be achieved by 
 
 \begin{lstlisting}
-// Assume l-hand, l-upper-arm, and pelvis are pointers of BodyNode
- Isometry3d T = l-hand->getTransform(l-upper-arm, pelvis);
+// Assume l_hand, l_upper_arm, and pelvis are pointers of BodyNode
+Isometry3d T = l_hand->getTransform(l_upper_arm, pelvis);
 \end{lstlisting}
 
 The velocity of any point in any BodyNode frame relative to any other
@@ -221,7 +243,7 @@ frame can be queried. For example, the relative linear velocity of a
 local point, \emph{offset}, in the \emph{l-hand} frame from the origin of the \emph{l-upper-arm} frame expressed in the \emph{pelvis} frame can be accessed by
 
 \begin{lstlisting}
- Vector3d v = l-hand->getLinearVelocity(offset, l-upper-arm, pelvis);
+ Vector3d v = l_hand->getLinearVelocity(offset, l_upper_arm, pelvis);
 \end{lstlisting}
 
 
@@ -289,14 +311,19 @@ local point, \emph{offset}, in the \emph{l-hand} frame from the origin of the \e
 % \paragraph{Spatial coordinates.}
 
 \subsection{Jacobian matrices}
-Calculating Jacobian matrix is a common theme in forward simulation, inverse kinematics, and many other robotics or graphics applications. DART computes Jacobian matrices and its derivatives efficiently and provides API to access the results in various forms. 
+Calculating the Jacobian matrix is a common requirement in forward simulation, inverse kinematics, and many other robotics or graphics applications. DART computes Jacobian matrices and its derivatives efficiently and provides API to access the results in various forms. 
 
 \paragraph{Skeleton.} The full Jacobian matrix with respect to all DOFs in the system can be accessed via the member functions of Skeleton.
 
 \begin{lstlisting}[caption=Skeleton.h]
-math::LinearJacobian getLinearJacobian(const BodyNode* _bodyNode, const Eigen::Vector3d& _localOffset, const Frame* _inCoordinatesOf = Frame::World()) const override;
+math::LinearJacobian getLinearJacobian(
+    const BodyNode* bodyNode, 
+    const Eigen::Vector3d& localOffset, 
+    const Frame* inCoordinatesOf = Frame::World()) const override;
 
-math::AngularJacobian getAngularJacobian(const BodyNode* _bodyNode, const Frame* _inCoordinatesOf = Frame::World()) const override;
+math::AngularJacobian getAngularJacobian(
+    const BodyNode* bodyNode, 
+    const Frame* inCoordinatesOf = Frame::World()) const override;
 \end{lstlisting}
 
 The first function returns $J_v$ that maps the generalized velocity of
@@ -311,7 +338,10 @@ matrix that combines both $J_v$ and $J_{\omega}$ can be obtained by
 the following function.
 
 \begin{lstlisting}[caption=Skeleton.h]
-math::Jacobian getJacobian(const BodyNode* bodyNode, const Eigen::Vector3d& localOffset, const Frame* inCoordinatesOf) const override;
+math::Jacobian getJacobian(
+    const BodyNode* bodyNode, 
+    const Eigen::Vector3d& localOffset, 
+    const Frame* inCoordinatesOf) const override;
 \end{lstlisting}
 
 
@@ -336,21 +366,26 @@ math::Jacobian getJacobian(const BodyNode* bodyNode, const Eigen::Vector3d& loca
 
 \paragraph{BodyNode.} More compact Jacobian matrices can be acquired
 via the member functions of a BodyNode. Unlike the Jacobain matrices
-for the entire Skeleton, these Jacobian matrices have $m$ columns, the number of DOFs on the kinematic chain from the root node to the BodyNode of interest.
+for the entire Skeleton, these Jacobian matrices have $m$ columns, where $m$ is the number of DOFs on the kinematic chain from the root node to the BodyNode of interest.
 
 
 \begin{lstlisting}[caption=BodyNode.h]
-math::LinearJacobian getLinearJacobian(const Eigen::Vector3d& _offset, const Frame* _inCoordinatesOf = Frame::World()) const;
+math::LinearJacobian getLinearJacobian(
+    const Eigen::Vector3d& offset, 
+    const Frame* inCoordinatesOf = Frame::World()) const;
 
-math::AngularJacobian getAngularJacobian(const Frame* _inCoordinatesOf = Frame::World()) const;
+math::AngularJacobian getAngularJacobian(
+    const Frame* _inCoordinatesOf = Frame::World()) const;
 
-math::Jacobian getJacobian(const Eigen::Vector3d& _offset, const Frame* _inCoordinatesOf) const;
+math::Jacobian getJacobian(
+    const Eigen::Vector3d& _offset, 
+    const Frame* _inCoordinatesOf) const;
 \end{lstlisting}
 
-\paragraph{Joint.} Similar Jacobian functions are also available for
-the Joint class. The number of columns of the Jacobian depends on the
+\paragraph{Joint.} Local Jacobian functions are also available for
+the \textbf{Joint} class. The number of columns of the Jacobian depends on the
 number of DOFs of the joint. For example, a BallJoint returns a $6
-\times 3$ Jacobian while a RevoluteJoint returns a $6 \times 1$ Jacobian.
+\times 3$ Jacobian while a RevoluteJoint returns a $6 \times 1$ Jacobian. A \textbf{Joint}-level Jacobian is expressed in the coordinates of the \textbf{Joint}'s \textit{child} \textbf{BodyNode}. They do not offer the same \textbf{Frame} semantics API that the more sophisticated Jacobians do, because the \textbf{Joint}-level Jacobians are primarily intended for low-level use.
 
 \begin{lstlisting}[caption=Joint.h]
 virtual math::Jacobian getLocalJacobian(const Eigen::VectorXd&
