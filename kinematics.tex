@@ -80,6 +80,7 @@ Any small mistake, such as mixing up a plus with a minus or switching two of the
 KIDO addresses this issue by providing frame semantics. The forward kinematics of KIDO are handled by the underlying \textbf{Frame} class. The Frame class is a pure virtual class which provides the user with an interface to compute the kinematic values of a frame with respect to any other arbitrary frame. So instead of needing to implement equation \ref{eqn:rel_accel}, KIDO allows you to simply call the function:
 
 \begin{lstlisting}
+// A, B, and F are all Frame instances
 B->getLinearAcceleration(A,F);
 \end{lstlisting}
 
@@ -105,9 +106,9 @@ Eigen::Vector3d getLinearAcceleration(
     const Frame* inCoordinatesOf = Frame::World()) const;
 \end{lstlisting}
 
-Note that an \textbf{Eigen::Isometry3d} represents a specialized type of transformation matrix which exists in SE3.
+Note that an \textbf{Eigen::Isometry3d} represents a specialized type of transformation matrix which exists in SE(3).
 
-Since \textbf{Frame} is a pure virtual interface class, we also need to have concrete implementations of it in order to perform forward kinematics. Most of the functions in \textbf{Frame} are actually implemented already; there are only five functions which derived classes need to implement:
+Since \textbf{Frame} is a pure virtual interface class, we also need to have concrete implementations of it in order to create any instances. Most of the functions in \textbf{Frame} are actually implemented already; there are only five functions which derived classes need to implement:
 
 \begin{lstlisting}
 virtual const Eigen::Isometry3d& getRelativeTransform() const = 0;
@@ -117,7 +118,7 @@ virtual const Eigen::Vector6d& getPrimaryRelativeAcceleration() const = 0;
 virtual const Eigen::Vector6d& getPartialAcceleration() const = 0;
 \end{lstlisting}
 
-In the first three functions, the term \textit{Relative} means the quantity is relative to its parent frame. The first three functions are all that is needed to perform forward kinematics. The last two functions are used to reduce the number of computations when performing Featherstone's Articulated Body Algorithm for forward dynamics.
+In the first three functions, the term \textit{Relative} means the quantity is relative to its parent frame (although spatial vectors are expressed in the \textit{coordinates} of the frame that they \textit{belong to}, not the parent frame). The first three functions are all that is needed to perform forward kinematics. The last two functions are used to reduce the number of computations when performing Featherstone's Articulated Body Algorithm for forward dynamics.
 
 KIDO currently provides four concrete implementations of the \textbf{Frame} class:
 
@@ -163,7 +164,7 @@ void SimpleFrame::setRelativeSpatialAcceleration(
 
 It is important to note that, by default, spatial quantities like spatial velocity and spatial acceleration should be given in the coordinates of the frame that they belong to (\textbf{not} in the coordinates of the parent frame). But KIDO does provide convenience functions that allow you to represent the spatial quantities in whichever coordinates you would like to. However, they still must represent the quantities \textbf{relative to} the parent, even if they're expressed in the coordinates of a different frame (i.e. the values are rotated).
 
-For those who are not familiar or not comfortable with spatial quantities, KIDO also offers an API for classic 3D vectors, like those used in the traditional Newton-Euler equations of motion:
+For those who are not familiar or not comfortable with spatial quantities, KIDO also offers an API for classic 3D Cartesian vectors, like those used in the traditional Newton-Euler equations of motion:
 
 \begin{lstlisting}
 void SimpleFrame::setClassicDerivatives(
@@ -383,7 +384,7 @@ math::Jacobian getJacobian(
     const Frame* _inCoordinatesOf) const;
 \end{lstlisting}
 
-\paragraph{JacobianNode.} A generalization of the \textbf{BodyNode} API is available via the interface class called \textbf{JacobianNode}. Arbitrary \textbf{Node}s in KIDO are able to inherit the \textbf{JacobianNode} class and utilize the exact same API that \textbf{BodyNode} provides. \textbf{Node}s are further explained in section \label{sec:nodes}. An example of a \textbf{JacobianNode} class (besides BodyNode) is the \textbf{EndEffector} class, which allows users to specify a \textbf{FixedFrame} that is rigidly attached to a \textbf{BodyNode}. With that, Jacobians can be computed for arbitrary child transforms of a \textbf{BodyNode}.
+\paragraph{JacobianNode.} A generalization of the \textbf{BodyNode} API is available via the interface class called \textbf{JacobianNode}. Arbitrary \textbf{Node}s in KIDO are able to inherit the \textbf{JacobianNode} class and utilize the exact same API that \textbf{BodyNode} provides. \textbf{Node}s are further explained in section \ref{sec:nodes}. An example of a \textbf{JacobianNode} class (besides BodyNode) is the \textbf{EndEffector} class, which allows users to specify a \textbf{FixedFrame} that is rigidly attached to a \textbf{BodyNode}. With that, Jacobians can be computed for arbitrary child transforms of a \textbf{BodyNode}.
 
 \paragraph{Joint.} Local Jacobian functions are also available for
 the \textbf{Joint} class. The number of columns of the Jacobian depends on the
@@ -478,6 +479,8 @@ One of the challenging aspects of Inverse Kinematics is that there are many appr
 
 \paragraph{} And these are only the most popular methods; others approaches may also exist. Despite any conceptual similarities between these methods, the implementation of each one tends to be drastically different. Each one may need to be tuned to each application that it gets used for. It is for this reason that finding a completely general inverse kinematics library is difficult. This is also why so many people resort to creating their own from scratch. KIDO seeks to break this pattern. Instead of simply providing an intransigent inverse kinematics solver, we offer an entire framework for performing inverse kinematics. This framework allows the user to freely swap out its solution finding method, and it even allows the user to create and plug in their own solution finding method. There is also a more advanced interface which allows users to plug in analytical solutions and access the features which are unique to analytical methods. KIDO comes pre-packaged with Jacobian Transpose and Damped Least Squares Pseudoinverse methods (underlined above). We do not currently offer any analytical solutions out of the box.
 
+An explanation of how to create your own custom \textbf{GradientMethod} (or \textbf{Analytical} solver) implementation is available at the end of section \ref{sec:ik_basic_framework}.
+
 \subsubsection{Error Method}
 \label{sec:ErrorMethod}
 
@@ -507,6 +510,8 @@ Similar to the Gradient Methods mentioned above, KIDO allows the user to create 
                                         & [Offset the \textbf{EndEffector} from the surface of the body]     \\ \hline
 \end{tabular}
 
+An explanation of how to create your own custom \textbf{ErrorMethod} implementation is available at the end of section \ref{sec:ik_basic_framework}.
+
 \subsubsection{Target}
 
 With KIDO, we can take advantage of the frame semantics discussed in section \ref{sec:FrameSemantics} to conveniently express kinematic constraints in terms of arbitrary reference frames. Furthermore, due to the automatic updating discussed later in section \ref{sec:lazy}, the constraint will automatically adjust whenever its reference frame moves.
@@ -517,7 +522,7 @@ A \textbf{SimpleFrame}, described in section \ref{sec:SimpleFrame}, is used as t
 
 \subsubsection{Objective Functions}
 
-In KIDO, we treat Inverse Kinematics as an optimization problem. The \textbf{ErrorMethod} from section \ref{sec:ErrorMethod} describes the constraints of the optimization problem. The \textbf{GradientMethod} from section \ref{sec:GradientMethod} computes (an estimate of) the gradient of the error. In this section, we discuss the Objective \textbf{Function}, which describes a cost function which should be minimized within the constraints.
+In KIDO, we treat Inverse Kinematics as an optimization problem. The \textbf{ErrorMethod} from section \ref{sec:ErrorMethod} describes a kinematic constraint for the optimization problem. The \textbf{GradientMethod} from section \ref{sec:GradientMethod} computes (an estimate of) the gradient of that constraint. In this section, we discuss the Objective \textbf{Function}, which describes a cost function which should be minimized while satisfying the constraints.
 
 \begin{figure}
   \centering
@@ -529,19 +534,19 @@ In KIDO, we treat Inverse Kinematics as an optimization problem. The \textbf{Err
   \label{fig:red_ik}
 \end{figure}
 
-By default, there is no objective function. As soon as a solution within the constraints is found, the result is returned. For kinematic structures with many redundant degrees of freedom, there may be infinite solutions to a given set of kinematic constraints, and some of those solutions might be more ``favorable'' than others. For example, in figure \ref{fig:red_ik} all four panels have the same exact kinematic constraints, but all four configurations are noticeably different. Depending on the context, this might or might not matter, but in some cases, there may be some valid configurations which are considered preferable to other valid configurations. In those cases, an Objective \textbf{Function} can be provided which will direct the solver towards an optimal configuration. The solver will seek to \textbf{minimize} the Objective Function.
+By default, there is no objective function. As soon as a solution within the constraints is found, the result is returned. For kinematic structures with many redundant degrees of freedom, there may be infinite solutions to a given set of kinematic constraints, and some of those solutions might be more ``favorable'' than others. For example, in figure \ref{fig:red_ik} all four panels have the same exact kinematic constraints, but all four configurations are noticeably different. Depending on the context, this might or might not matter, but in some cases, there may be some valid configurations which are considered preferable to other valid configurations. In those cases, an Objective \textbf{Function} can be provided which will direct the solver towards a preferable configuration. The solver will seek to \textbf{minimize} the Objective Function, therefore it should be thought of as a \textbf{cost} function.
 
-When performing inverse kinematics on a live robot, it might be crucial to keep the robot's motions within the null space of its kinematic constraints, or else the task may fail. A common method for ensuring this is to project the objective through the null space of the constraint Jacobian. KIDO allows you to specify both an Objective function and a Null Space Objective function. The output of the Null Space Objective function will automatically be projected through the null space of the body's Jacobian, and then added to the overall Objective. If keeping the kinematic constraint satisfied is far more important than minimizing some objective, then that objective should be set as the null space objective and not set as the normal objective.
+When performing inverse kinematics on a live robot, it might be crucial for all the robot's motions to satisfy the kinematic constraints, or else the task may fail. A common method for ensuring this is to project the objective through the null space of the constraint Jacobian. KIDO allows you to specify both an Objective function and a Null Space Objective function. The output of the Null Space Objective function will automatically be projected through the null space of the body's Jacobian, and then added to the overall Objective. If keeping the kinematic constraint satisfied is far more important than minimizing some objective, then that objective should be set as the null space objective and not set as the normal objective.
 
-\subsubsection{Framework}
-
-The components that are mentioned in the previous sections are ultimately tied together by the framework of the \textbf{dynamics::InverseKinematics} class. The information flow within the framework can be seen in figure \ref{fig:ik_framework}. \textbf{InverseKinematics} takes advantage of KIDO's \textbf{optimizer} framework, which is discussed in further detail in section \ref{sec:optimizer}.
+\subsubsection{Basic Framework}
+\label{sec:ik_basic_framework}
+The components that are mentioned in the previous sections are ultimately tied together by the framework of the \textbf{dynamics::InverseKinematics} class. The information flow within the framework can be seen in figure \ref{fig:ik_basic_framework}. \textbf{InverseKinematics} takes advantage of KIDO's \textbf{optimizer} framework, which is discussed in further detail in section \ref{sec:optimizer}.
 
 \begin{figure}
 \centering
 \includegraphics[width=\textwidth]{fig/ik_diagram.pdf}
 \caption{Overview of \textbf{InverseKinematics} Framework}
-\label{fig:ik_framework}
+\label{fig:ik_basic_framework}
 \end{figure}
 
 This entire framework is automatically constructed when an \textbf{InverseKinematics} object is created. Each piece has a default instantiation:
@@ -551,8 +556,125 @@ This entire framework is automatically constructed when an \textbf{InverseKinema
   \item \textbf{GradientMethod} is defaulted to the Damped Least Squares Pseudoinverse Jacobian method with a damping factor of \textbf{DefaultIKDLSCoefficient} (currently 0.05).
   \item \textbf{Objective} is a plain \textbf{optimizer::Function} which always returns zero. This is the same as not having an objective.
   \item \textbf{Null Space Objective} is also a zero function by default.
-  \item \textbf{Problem} is automatically set up to contain the kinematic constraint and an objective which merges together the normal objective function and the projected null space objective function. As the user, you have the freedom to overwrite any of this by manually replacing the objective function or adding/remove constraints of your own. If standard problem setup is insufficient for your needs, this is where you have the freedom to completely reconfigure the problem.
+  \item \textbf{Problem} is automatically set up to contain the kinematic constraint and an objective which merges together the normal objective function and the projected null space objective function. As the user, you have the freedom to overwrite any of this by manually replacing the objective function or adding/remove constraints of your own. If standard problem setup is insufficient for your needs, this is where you have the freedom to completely reconfigure the problem. If the Problem is ever altered by the user, it can always be returned to its original setup by calling InverseKinematics::resetProblem().
   \item \textbf{Solver} defaults to KIDO's built-in \textbf{optimizer::GradientDescentSolver}. This is a simple gradient descent solver which has no third-party dependencies. This can be swapped out for a more sophisticated solver at any time. For an explanation of the different solvers that are available, see section \ref{sec:optimizer}.
 \end{itemize}
 
+Any of the default components can be swapped out with alternatives at any time. Users can also create their own custom implementations of each component by inheriting the base class for each and overriding a few pure virtual functions, listed below:
+
+%\begin{itemize}
+%  \item \textbf{ErrorMethod}
+%\end{itemize}
+\paragraph{kido::dynamics::IK::ErrorMethod} \
+\begin{lstlisting}
+// Override this by creating a new instance of your class type and returning it in
+// a unique_ptr. This allows IK setups to be easily replicated which could be 
+// useful for spawning threads to parallelize your computations.
+//
+// Note that the constructor of your class is required to take in an 
+// InverseKinematics pointer as its first argument.
+std::unique_ptr<ErrorMethod> clone(InverseKinematics* newIK) const;
+
+// Override this by computing a 6D error vector. The first three components of the
+// vector should represent orientation error (usually as Euler Angles or a logmap)
+// and the last three components should represent translational error. NOTE THAT
+// THIS IS THE REVERSE OF SOME CONVENTIONS. We do this in order to match 
+// Featherstone's spatial vector convention, which is used in KIDO for spatial 
+// velocity and spatial acceleration vectors.
+Eigen::Vector6d computeError();
+
+// We allow some flexibility in the exact meaning of the error vector that gets
+// computed by computeError(), because iterative methods are robust to various
+// representations of rotational error. However, Analytical methods typically
+// require an exact desired transform. This function should construct an exact
+// desired transform based on the current transform and the error (as computed
+// by this error method) of the current transform.
+Eigen::Isometry3d computeDesiredTransform(
+    const Eigen::Isometry3d& currentTransform,
+    const Eigen::Vector6d& error);
+\end{lstlisting}
+
+\paragraph{kido::dynamics::IK::GradientMethod} \
+\begin{lstlisting}
+// Override this by creating a new instance of your class type and returning it in
+// a unique_ptr. This allows IK setups to be easily replicated which could be 
+// useful for spawning threads to parallelize your computations.
+//
+// Note that the constructor of your class is required to take in an 
+// InverseKinematics pointer as its first argument.
+std::unique_ptr<GradientMethod> clone(InverseKinematics* newIK) const;
+
+// This function should take in a 6D error vector (which will have been computed
+// by the current ErrorMethod) and then modify the contents of the gradient 
+// variable, which is passed in as an output parameter.
+void computeGradient(
+    const Eigen::Vector6d& error,
+    Eigen::VectorXd& gradient);
+\end{lstlisting}
+
+\paragraph{kido::dynamics::IK::Analytical} is a specialized version of \textbf{GradientMethod} which allows users to plug in Analytical (a.k.a.\ Closed-Form) inverse kinematics solvers such that they are compatible with KIDO's inverse kinematics interface and hierarchical inverse kinematics solver (discussed in section \ref{sec:ik_hier_framework}). Note that computeGradient should not be implemented for an Analytical solver; that gets done automatically.
+
+\begin{lstlisting}
+// Override this by creating a new instance of your class type and returning it in
+// a unique_ptr. This allows IK setups to be easily replicated which could be 
+// useful for spawning threads to parallelize your computations.
+//
+// Note that the constructor of your class is required to take in an 
+// InverseKinematics pointer as its first argument.
+std::unique_ptr<GradientMethod> clone(InverseKinematics* newIK) const;
+
+// This function should fill in the mSolutions protected variable and then return
+// it. It would also be a good idea to call checkSolutionJointLimits() prior to
+// returning, unless your function implementation checks the joint limits on its
+// own.
+//
+// The Solution struct is a container which holds an Eigen::VectorXd for the
+// configuration that's been generated, and a flag called mValidity which uses a
+// bitwise map to indicate whether the configuration violates joint limits or is
+// out of reach from the target transform. The expectation is that your 
+// implementation will set mValidity to OUT_OF_REACH if the configuration does
+// not reach the goal, and then you should call checkSolutionJointLimits() just
+// before returning, which will inject LIMIT_VIOLATED into any Solutions whose
+// joint limits are invalid.
+const std::vector<Solution>& computeSolutions(
+    const Eigen::Isometry3d& desiredTransform);
+
+// An Analyical solver might only be able to solved for a subset of the degrees
+// of freedom that are being utilized by an inverse kinematics solver. Because
+// of this, you need to provide a function that indicates which degrees of
+// freedom your Analytical method can provide solutions for.
+//
+// To determine how the remaining degrees of freedom get used, the Analytical
+// class provides a setExtraDofUtilization(ExtraDofUtilization_t) function.
+const std::vector<size_t>& getDofs() const;
+\end{lstlisting}
+
+It is also worth noting that the \textbf{Analytical} class has a \textbf{QualityComparison} function which is used to compare the qualities of various solutions. The default \textbf{QualityComparison} function will simply pick the configuration whose highest component of difference from the current configuration is the smallest. This is essentially the same as picking the configuration whose highest joint velocity would be the smallest out of all the options if the robot were to move to it from the current configuration. The chart below provides an example:
+
+\todo[MXG]{Create a chart to explain how the best configuration is selected}
+
+\paragraph{kido::dynamics::IK::Function \& kido::optimizer::Function} are classes which should both be inherited when creating a class which represents an Objective Function. Technically, any class which inherits \textbf{optimizer::Function} can be used as an Objective Function, but it can only be cloned if it also inherits \textbf{dynamics::IK::Function}. Without that, the function will be replaced by a default zero-function in any clones that get produced.
+
+\paragraph{kido::optimizer::Problem \& kido::optimizer::Solver} are standard tools from the kido-optimizer library, which is discussed in section \ref{sec:optimizer}.
+
+\subsubsection{Hierarchical Framework}
+\label{sec:ik_hier_framework}
 \todo[MXG]{Explain hierarchical IK \& whole body IK}
+
+The basic \textbf{InverseKinematics} framework is only designed to solve an inverse kinematics problem for a single body or end effector. This is typically sufficient for simple robot arms, such as an industrial manipulator. More advanced robots or characters, such as humanoids, might require a more sophisticated type of inverse kinematics solver. In particular, they might need a solver that can solve for kinematic constraints on multiple bodies or end effectors simultaneously. To facilitate this, KIDO offers the \textbf{HierarchicalIK} class. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
