@@ -649,19 +649,19 @@ const std::vector<Solution>& computeSolutions(
 const std::vector<size_t>& getDofs() const;
 \end{lstlisting}
 
-It is also worth noting that the \textbf{Analytical} class has a \textbf{QualityComparison} function which is used to compare the qualities of various solutions. The default \textbf{QualityComparison} function will simply pick the configuration whose highest component of difference from the current configuration is the smallest. This is essentially the same as picking the configuration whose highest joint velocity would be the smallest out of all the options if the robot were to move to it from the current configuration. The chart below provides an example:
+It is also worth noting that the \textbf{Analytical} class has a \textbf{QualityComparison} function which is used to compare the qualities of various solutions. The default \textbf{QualityComparison} function will simply pick the configuration whose largest component of difference from the current configuration is the smallest. This is essentially the same as picking the configuration whose highest joint velocity would be the smallest out of all the options if the robot were to move to it from the current configuration. The chart below provides an example:
 
 \begin{tabular}{| c | c | c || c | c | c | c | c |}
   \hline
-  Rank & \textbf{Highest Component} & Norm  & $\Delta$q0 & $\Delta$q1 & $\Delta$q2 & $\Delta$q3 & $\Delta$q4 \\ \hline
+  Rank & \textbf{Largest Component} & Norm  & $\Delta$q0 & $\Delta$q1 & $\Delta$q2 & $\Delta$q3 & $\Delta$q4 \\ \hline
   1    & 3.1                        & ~4.58 & 1.3 & 1.2          & 2.8 & 0.6          & \textbf{3.1} \\ \hline
   2    & 4.0                        & ~4.01 & 0.1 & 0.0          & 0.2 & \textbf{4.0} & 0.0          \\ \hline
   3    & 5.3                        & ~7.59 & 3.8 & \textbf{5.3} & 0.5 & 2.3          & 3.1          \\ \hline
 \end{tabular}
 
-The right side of the table shows the component-wise differences between the current configuration and each solution that has been generated. The left side shows the rank of each solution, along with the highest component and norm of its difference from the current configuration. Notice that the solutions are not sorted based on the norm; they are sorted in ascending order of the highest component in the difference vector. This sorting approach tends to reduce the likelihood of a ``flipped-elbow'' solution being selected.
+The right side of the table shows the component-wise differences between the current configuration and each solution that has been generated. The left side shows the rank of each solution, along with the largest component of difference and the norm of its difference from the current configuration. Notice that the solutions are not sorted based on the norm; they are sorted in ascending order of the largest component in the difference vector. This sorting approach tends to reduce the likelihood of an ``elbow flip'' solution being selected.
 
-\paragraph{kido::dynamics::IK::Function \& kido::optimizer::Function} are classes which should both be inherited when creating a class which represents an Objective Function. Technically, any class which inherits \textbf{optimizer::Function} can be used as an Objective Function, but it can only be cloned if it also inherits \textbf{dynamics::IK::Function}. Without that, the function will be replaced by a default zero-function in any clones that get produced.
+\paragraph{kido::dynamics::IK::Function \& kido::optimizer::Function} are classes which should both be inherited when creating a class that represents an Objective Function. Technically, any class which inherits \textbf{optimizer::Function} can be used as an Objective Function, but it can only be cloned if it also inherits \textbf{dynamics::IK::Function}. Without that, the function will be replaced by a default zero-function in any clones that get produced.
 
 \paragraph{kido::optimizer::Problem \& kido::optimizer::Solver} are standard tools from the kido-optimizer library, which is discussed in section \ref{sec:optimizer}.
 
