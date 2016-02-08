@@ -463,7 +463,7 @@ Robotics and graphics applications often need fast and reliable inverse kinemati
 \subsubsection{Gradient Method}
 \label{sec:GradientMethod}
 
-One of the challenging aspects of Inverse Kinematics is that there are many approaches for estimating the gradient of the kinematic constraints, and each approach has strengths and weaknesses which may depend on the context in which they are being used. Here are a few popular examples:
+One of the challenging aspects of Inverse Kinematics is that there are many approaches for estimating the gradient of a kinematic constraint, and each approach has strengths and weaknesses which may depend on the context in which they are being used. Here are a few popular examples:
 
 \paragraph{\underline{Jacobian Transpose Method}} simply applies the transpose of the Jacobian matrix to an error vector and performs gradient descent on the constraint function until convergence. This method is computationally inexpensive which allows it to be fast, and it is also very numerically stable. However, it tends to be imprecise, which might make it unsuitable for high-performance applications.
 
@@ -516,9 +516,9 @@ An explanation of how to create your own custom \textbf{ErrorMethod} implementat
 
 With KIDO, we can take advantage of the frame semantics discussed in section \ref{sec:FrameSemantics} to conveniently express kinematic constraints in terms of arbitrary reference frames. Furthermore, due to the automatic updating discussed later in section \ref{sec:lazy}, the constraint will automatically adjust whenever its reference frame moves.
 
-To achieve this, we have a target frame which acts as a reference frame for the parameters of the \textbf{ErrorMethod}. For the \textbf{TaskSpaceRegion} implementation of the \textbf{ErrorMethod}, the linear bounds will be evaluated relative to the translation of the target frame, and the angular bounds will be evaluated relative to the orientation of the target frame. In general, it is at the discretion of the implementer to decide how a custom implementation of an \textbf{ErrorMethod} handles the target frame, but the KIDO developers strongly urge users to implement their \textbf{ErrorMethod}s such that they use the target frame in an intuitive way. For example, if the goal of an \textbf{ErrorMethod} is to constrain the body to a parabolic surface, then the origin and orientation of the parabolic surface should be determined by the target frame.
+To achieve this, we have a target frame which acts as a reference frame for the parameters of the \textbf{ErrorMethod}. For the \textbf{TaskSpaceRegion} implementation of the \textbf{ErrorMethod}, the linear bounds will be evaluated relative to the origin of the target frame, and the angular bounds will be evaluated relative to the orientation of the target frame. In general, it is at the discretion of the implementer to decide how a custom implementation of an \textbf{ErrorMethod} utilizes the target frame, but the KIDO developers strongly urge users to implement their \textbf{ErrorMethod}s such that they use the target frame in an intuitive way. For example, if the goal of an \textbf{ErrorMethod} is to constrain the body to a parabolic surface, then the origin and orientation of the parabolic surface should be determined by the target frame.
 
-A \textbf{SimpleFrame}, described in section \ref{sec:SimpleFrame}, is used as the target frame in the \textbf{InverseKinematics} framework. The target \textbf{SimpleFrame} can be  switched out for a different \textbf{SimpleFrame} (or a derivative class of SimpleFrame) at any time, but it cannot be switched out for any other type of \textbf{Frame}. In order to use an arbitrary \textbf{Frame} instance as the target frame for your kinematic constraints, all you have to do is set that \textbf{Frame} to be the parent \textbf{Frame} of your existing target \textbf{SimpleFrame}, and set the relative transform of your existing target \textbf{SimpleFrame} to an identity matrix. This design makes it extremely straightforward to express your target in whatever way is most convenient for your application.
+A \textbf{SimpleFrame}, described in section \ref{sec:SimpleFrame}, is used as the target frame in the \textbf{InverseKinematics} framework. The target \textbf{SimpleFrame} can be  switched out for a different \textbf{SimpleFrame} (or a derivative class of SimpleFrame) at any time, but it cannot be switched out for any other type of \textbf{Frame}. In order to use an arbitrary \textbf{Frame} instance as the target frame for your kinematic constraints, all you have to do is set that \textbf{Frame} to be the parent of your existing target \textbf{SimpleFrame}, and then set the relative transform of your existing target \textbf{SimpleFrame} to an identity matrix. This design makes it extremely straightforward to express your target in whatever way is most convenient for your application.
 
 \subsubsection{Objective Functions}
 
@@ -651,7 +651,15 @@ const std::vector<size_t>& getDofs() const;
 
 It is also worth noting that the \textbf{Analytical} class has a \textbf{QualityComparison} function which is used to compare the qualities of various solutions. The default \textbf{QualityComparison} function will simply pick the configuration whose highest component of difference from the current configuration is the smallest. This is essentially the same as picking the configuration whose highest joint velocity would be the smallest out of all the options if the robot were to move to it from the current configuration. The chart below provides an example:
 
-\todo[MXG]{Create a chart to explain how the best configuration is selected}
+\begin{tabular}{| c | c | c || c | c | c | c | c |}
+  \hline
+  Rank & \textbf{Highest Component} & Norm  & $\Delta$q0 & $\Delta$q1 & $\Delta$q2 & $\Delta$q3 & $\Delta$q4 \\ \hline
+  1    & 3.1                        & ~4.58 & 1.3 & 1.2          & 2.8 & 0.6          & \textbf{3.1} \\ \hline
+  2    & 4.0                        & ~4.01 & 0.1 & 0.0          & 0.2 & \textbf{4.0} & 0.0          \\ \hline
+  3    & 5.3                        & ~7.59 & 3.8 & \textbf{5.3} & 0.5 & 2.3          & 3.1          \\ \hline
+\end{tabular}
+
+The right side of the table shows the component-wise differences between the current configuration and each solution that has been generated. The left side shows the rank of each solution, along with the highest component and norm of its difference from the current configuration. Notice that the solutions are not sorted based on the norm; they are sorted in ascending order of the highest component in the difference vector. This sorting approach tends to reduce the likelihood of a ``flipped-elbow'' solution being selected.
 
 \paragraph{kido::dynamics::IK::Function \& kido::optimizer::Function} are classes which should both be inherited when creating a class which represents an Objective Function. Technically, any class which inherits \textbf{optimizer::Function} can be used as an Objective Function, but it can only be cloned if it also inherits \textbf{dynamics::IK::Function}. Without that, the function will be replaced by a default zero-function in any clones that get produced.
 
@@ -659,22 +667,24 @@ It is also worth noting that the \textbf{Analytical} class has a \textbf{Quality
 
 \subsubsection{Hierarchical Framework}
 \label{sec:ik_hier_framework}
-\todo[MXG]{Explain hierarchical IK \& whole body IK}
 
-The basic \textbf{InverseKinematics} framework is only designed to solve an inverse kinematics problem for a single body or end effector. This is typically sufficient for simple robot arms, such as an industrial manipulator. More advanced robots or characters, such as humanoids, might require a more sophisticated type of inverse kinematics solver. In particular, they might need a solver that can solve for kinematic constraints on multiple bodies or end effectors simultaneously. To facilitate this, KIDO offers the \textbf{HierarchicalIK} class. 
+The basic \textbf{InverseKinematics} framework is only designed to solve an inverse kinematics problem for a single body or end effector. This is typically sufficient for a simple robot arm, such as an industrial manipulator. More advanced robots or characters, such as humanoids, might require a more sophisticated type of inverse kinematics solver. In particular, they might need a solver that can solve for kinematic constraints on multiple bodies or end effectors simultaneously. To facilitate this, KIDO offers the \textbf{HierarchicalIK} class.
 
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{fig/hik_diagram.pdf}
+\caption{Overview of \textbf{HierarchicalIK} Framework}
+\label{fig:ik_hier_framework}
+\end{figure}
 
+Figure \ref{fig:ik_hier_framework} shows an example of how a \textbf{HierarchicalIK} object might be set up. Suppose we have a humanoid robot with two arms, two legs, and a camera on its head. We want the robot to grasp an object with both hands while standing in a balanced configuration, and we want it to look along a specific ray with its camera. The stance constraints on the feet are easily solved within the null space of the grasping constraints, so we place the IK solvers for the grasping constraints in level 0 (the highest priority level), and the stance constraints for the feet go below them in level 1. The camera view constraint is less important than any of the other four constraints, so we put that below all of them, in level 2.
 
+The \textbf{HierarchicalIK} class can handle arbitrarily many hierarchy levels. All the inverse kinematics modules that are placed on the same level will be given the same amount of priority; their constraint functions will essentially be superimposed together. This superposition of constraint functions will then be projected through all the null spaces of any higher priority (lower level value) inverse kinematics modules. The level of an \textbf{InverseKinematics} object can be set using \texttt{InverseKinematics::setHierarchyLevel(size\_t)}.
 
+Even though a Hierarchical object uses references to \textbf{InverseKinematics} objects, only the \textbf{ErrorMethod} and \textbf{GradientMethod} components of each \textbf{InverseKinematics} object gets used by a \textbf{HierarchicalIK}. This means that passing in an Objective or a Null Space Objective to the individual \textbf{InverseKinematics} objects will have no effect on a \textbf{HierarchicalIK}. Instead, the \textbf{HierarchicalIK} object has its own Objective and Null Space Objective. It also has its own \textbf{Problem} and \textbf{Solver}, so modifications to the \textbf{Problem}s and \textbf{Solver}s of the individual \textbf{InverseKinematics} objects also has no effect on a \textbf{HierarchicalIK} object. However, configuring an \textbf{InverseKinematics} module to use a specific \textbf{Analytical} (or any other \textbf{GradientMethod}) type \textit{will} have an impact on any \textbf{HierarchicalIK} object that it gets passed to. This allows \textbf{HierarchicalIK}s to string together multiple \textbf{Analytical} IK solutions simultaneously. For example, if a humanoid has an analytical IK solution for each limb, then the \textbf{HierarchicalIK} may be able to solve an arbitrary whole body inverse kinematics problem with a single iteration. Analytical IK solutions can also be seamlessly integrated with iterative solvers within a single \textbf{HierarchicalIK}. The \textbf{HierarchicalIK} will also respect whatever \textbf{ErrorMethod} is given to each \textbf{InverseKinematics} module.
 
+The \textbf{HierarchicalIK} class is a pure virtual class, because it does not specify any way to decide which \textbf{InverseKinematics} modules it will use. Instead, there are two derived classes which offer different behavior:
 
+\paragraph{CompositeIK} is a derivative of \textbf{HierarchicalIK} which allows the user to freely select which InverseKinematics modules it should utilize.
 
-
-
-
-
-
-
-
-
-
+\paragraph{WholeBodyIK} is a derivative of \textbf{HierarchicalIK} which will automatically detect all \textbf{BodyNode} and \textbf{EndEffector} instances in a given \textbf{Skeleton} and use any \textbf{InverseKinematics} modules attached to them.

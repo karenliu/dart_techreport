@@ -283,13 +283,6 @@ optimizer::Function<y:LabelModel>
           <y:Geometry height="21.25" width="31.25" x="747.2512499999998" y="282.3870000000004"/>
           <y:Fill hasColor="false" transparent="false"/>
           <y:BorderStyle hasColor="false" type="line" width="1.0"/>
-          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="16" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="22.625" modelName="custom" textColor="#000000" visible="true" width="17.40625" x="45.3800956396874" y="-26.625">+<y:LabelModel>
-              <y:SmartNodeLabelModel distance="4.0"/>
-            </y:LabelModel>
-            <y:ModelParameter>
-              <y:SmartNodeLabelModelParameter labelRatioX="-0.5" labelRatioY="0.5" nodeRatioX="0.5" nodeRatioY="-0.5" offsetX="14.130095639687397" offsetY="-4.0" upX="0.0" upY="-1.0"/>
-            </y:ModelParameter>
-          </y:NodeLabel>
           <y:Shape type="rectangle"/>
         </y:ShapeNode>
       </data>
@@ -307,6 +300,18 @@ optimizer::Function<y:LabelModel>
               <y:SmartNodeLabelModelParameter labelRatioX="0.0" labelRatioY="0.0" nodeRatioX="0.2844800000000032" nodeRatioY="0.0" offsetX="0.0" offsetY="0.0" upX="0.0" upY="-1.0"/>
             </y:ModelParameter>
           </y:NodeLabel>
+          <y:Shape type="rectangle"/>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="n18">
+      <data key="d5"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:Geometry height="22.625" width="17.40625" x="792.6313456396872" y="255.7620000000004"/>
+          <y:Fill hasColor="false" transparent="false"/>
+          <y:BorderStyle hasColor="false" type="line" width="1.0"/>
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="16" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="22.625" modelName="internal" modelPosition="c" textColor="#000000" visible="true" width="17.40625" x="0.0" y="0.0">+</y:NodeLabel>
           <y:Shape type="rectangle"/>
         </y:ShapeNode>
       </data>
@@ -372,7 +377,6 @@ optimizer::Function<y:LabelModel>
       </data>
     </edge>
     <edge id="e6" source="n13" target="n5">
-      <data key="d9"/>
       <data key="d10">
         <y:PolyLineEdge>
           <y:Path sx="0.0" sy="0.0" tx="-45.2349999999999" ty="-34.0625">
@@ -385,7 +389,6 @@ optimizer::Function<y:LabelModel>
       </data>
     </edge>
     <edge id="e7" source="n15" target="n7">
-      <data key="d9"/>
       <data key="d10">
         <y:PolyLineEdge>
           <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/>
@@ -396,7 +399,6 @@ optimizer::Function<y:LabelModel>
       </data>
     </edge>
     <edge id="e8" source="n6" target="n0">
-      <data key="d9"/>
       <data key="d10">
         <y:PolyLineEdge>
           <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/>
@@ -407,7 +409,6 @@ optimizer::Function<y:LabelModel>
       </data>
     </edge>
     <edge id="e9" source="n6" target="n2">
-      <data key="d9"/>
       <data key="d10">
         <y:PolyLineEdge>
           <y:Path sx="-80.44639238179042" sy="-34.07237926397346" tx="-80.44639238179042" ty="25.0330624999998"/>
@@ -418,7 +419,6 @@ optimizer::Function<y:LabelModel>
       </data>
     </edge>
     <edge id="e10" source="n6" target="n13">
-      <data key="d9"/>
       <data key="d10">
         <y:PolyLineEdge>
           <y:Path sx="-80.54085528319928" sy="-33.48736435200021" tx="-113.5198974609375" ty="0.0">
@@ -431,7 +431,6 @@ optimizer::Function<y:LabelModel>
       </data>
     </edge>
     <edge id="e11" source="n6" target="n15">
-      <data key="d9"/>
       <data key="d10">
         <y:PolyLineEdge>
           <y:Path sx="-80.42214157029719" sy="-33.05541857340643" tx="-113.5198974609375" ty="0.0">
