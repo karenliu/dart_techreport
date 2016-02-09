@@ -389,7 +389,7 @@ math::Jacobian getJacobian(
 \paragraph{Joint.} Local Jacobian functions are also available for
 the \textbf{Joint} class. The number of columns of the Jacobian depends on the
 number of DOFs of the joint. For example, a BallJoint returns a $6
-\times 3$ Jacobian while a RevoluteJoint returns a $6 \times 1$ Jacobian. A \textbf{Joint}-level Jacobian is expressed in the coordinates of the \textbf{Joint}'s \textit{child} \textbf{BodyNode}. They do not offer the same \textbf{Frame} semantics API that the more sophisticated Jacobians do, because the \textbf{Joint}-level Jacobians are primarily intended for low-level use.
+\times 3$ Jacobian while a RevoluteJoint returns a $6 \times 1$ Jacobian. A \textbf{Joint}-level Jacobian is expressed in the coordinates of the \textbf{Joint}'s \textit{child} \textbf{BodyNode}. They do not offer the same \textbf{Frame} semantics API that the more sophisticated Jacobian functions do, because the \textbf{Joint}-level Jacobians are primarily intended for low-level use.
 
 \begin{lstlisting}[caption=Joint.h]
 virtual math::Jacobian getLocalJacobian(const Eigen::VectorXd&
