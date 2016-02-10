@@ -84,7 +84,19 @@ You can then retrieve it with:
 OccupancyGrid* grid = shapeNode->get<OccupancyGrid>();
 \end{lstlisting}
 
-If the \texttt{shapeNode} instance has never been given or created an \texttt{OccupancyGrid} object, this function will return a \texttt{nullptr} by default. It is always a good idea to check whether the \textbf{Addon} pointer that gets returned is a \texttt{nullptr}, because KIDO does not throw any exceptions or assertions when you request an \textbf{Addon} that is not present in the object.
+If the object named \texttt{shapeNode} has never created or been given an \texttt{OccupancyGrid} object, this function will return a \texttt{nullptr} by default. It is always a good idea to check whether the \textbf{Addon} pointer that gets returned is a \texttt{nullptr}, because KIDO does not throw any exceptions or assertions when you request an \textbf{Addon} that is not present in the object.
+
+There are many native Addons in KIDO:
+
+\begin{itemize}
+  \item \textbf{Support} which is an Addon for \textbf{EndEffector}
+  \item \textbf{RevoluteJoint::Addon} which contains unique properties for \textbf{RevoluteJoint}
+  \item \textbf{PrismaticJoint::Addon} which contains unique properties for \textbf{PrismaticJoint}
+  \item (All the other six Joint-type Addons)
+  \item \todo[MXG]{Mention the Addons for ShapeFrame once they are finished}
+\end{itemize}
+
+In some cases, such as the Joint-type Addons, the Addon is crucial for the object to function correctly. In other cases, such as the \textbf{Support} class, the Addon simply provides extra features. It might seem counter-intuitive to put critical property information into an Addon if the class cannot function without it, but there is a strong motivation for this: When the \textbf{Skeleton::ExtendedProperties} is retrieved, it pulls in all the \textbf{Properties} of all the \textbf{BodyNode}s, \textbf{Node}s, and \textbf{Joint}s in the \textbf{Skeleton}, as well as the \textbf{Properties} of all the \textbf{Addon}s attached to those \textbf{BodyNode}s, \textbf{Node}s, and \textbf{Joint}s. This means that there is no special handling required in order to save all the unique property information for each different Joint-type; all their unique properties are stored in \textbf{Addon}s, and the Properties of those \textbf{Addon}s will get sucked into the \textbf{Skeleton::ExtendedProperties} automatically.
 
 \subsubsection{Nodes}
 \label{sec:nodes}
