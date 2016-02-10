@@ -98,6 +98,46 @@ There are many native Addons in KIDO:
 
 In some cases, such as the Joint-type Addons, the Addon is crucial for the object to function correctly. In other cases, such as the \textbf{Support} class, the Addon simply provides extra features. It might seem counter-intuitive to put critical property information into an Addon if the class cannot function without it, but there is a strong motivation for this: When the \textbf{Skeleton::ExtendedProperties} is retrieved, it pulls in all the \textbf{Properties} of all the \textbf{BodyNode}s, \textbf{Node}s, and \textbf{Joint}s in the \textbf{Skeleton}, as well as the \textbf{Properties} of all the \textbf{Addon}s attached to those \textbf{BodyNode}s, \textbf{Node}s, and \textbf{Joint}s. This means that there is no special handling required in order to save all the unique property information for each different Joint-type; all their unique properties are stored in \textbf{Addon}s, and the Properties of those \textbf{Addon}s will get sucked into the \textbf{Skeleton::ExtendedProperties} automatically.
 
+By creating your own custom Addons and attaching them to objects in Skeletons, you can extend the scope of a Skeleton's \textbf{State} and \textbf{ExtendedProperties}. The State of your Addon will be embedded into the \textbf{Skeleton::State}, and the Properties of your Addon will be embedded into the \textbf{Skeleton::ExtendedProperties}. Creating your own custom Addon involves---at a minimum---inheriting the class \textbf{kido::common::Addon} and then overriding the \textbf{Addon::cloneAddon} function. Additionally, if your Addon has a \textbf{State}, then you should also override the functions \textbf{Addon::setAddonState(const State\&)} and \textbf{Addon::getAddonState()}. Neglecting to override those functions will cause \textbf{Skeleton::State} to treat your Addon as though it has no State. Similarly, if your Addon has \textbf{Properties}, then you should override the functions \textbf{Addon::setAddonProperties(const Properties\&)} and \textbf{Addon::getAddonProperties()}. Neglecting to override these will cause \textbf{Skeleton::ExtendedProperties} to treat your Addon as though it has no Properties. Also note that the constructor of your Addon is expected to take an \textbf{AddonManager*} as its first argument; it can have any number of arbitrary argument types after that.
+
+The most common use case of an Addon is to embed plain old data (POD) into the Properties or State of a Skeleton. To accommodate this, we offer two templated classes which take care of constructing an Addon with \textbf{State} and/or \textbf{Properties} that can live happily within a Skeleton:
+
+\begin{itemize}
+  \item \textbf{AddonWithProtectedPropertiesInSkeleton} is suitable for Addons which only has a POD \textbf{Properties} and no \textbf{State}.
+  \item \textbf{AddonWithProtectedStateAndPropertiesInSkeleton} is suitable for Addons which have both a POD \textbf{State} and a POD \textbf{Properties}.
+\end{itemize}
+
+The template arguments of these classes work as follows:
+
+\begin{itemize}
+  \item The class type that inherits this class. These are CRTP classes.
+  \item (Only for AddonWithProtectedStateAndPropertiesInSkeleton) The POD \textbf{State} type
+  \item The POD \textbf{Properties} type
+  \item The type of AddonManager that this class is intended for. Pass in \texttt{AddonManager} if the type of AddonManager is irrelevant.
+  \item (Only for AddonWithProtectedStateAndPropertiesInSkeleton) The function that should be called whenever the State of the Addon is updated.
+  \item The function that should be called whenever the Properties of the Addon are updated
+\end{itemize}
+
+The update functions that are used for the final template argument(s) must accept a single argument, which will be a pointer to the full Addon class. CRTP (Curiously Recurring Template Pattern) is used to make this possible.
+
+The \textbf{State} and \textbf{Properties} are protected for this type of Addon to ensure that all changes to the \textbf{Properties} are registered by the \textbf{Skeleton}. Otherwise, \textbf{Skeleton}s would not be able to correctly keep track of their ``version'' number \todo[MXG]{We should probably have a section about Skeleton version and cite it here}. This can be inconvenient if the POD \textbf{State} or \textbf{Properties} structures have many fields that need to be accessed or changed, because then accessor and mutator functions are needed for each one. This can entail a troublesome amount of typing, and worse yet: When writing mutator functions, you must be sure to call the correct update functions, and increment the Skeleton's version number if a property is being changed.
+
+To avoid the hassle and dangers of writing many accessor and mutator functions, KIDO provides a few macros which can take of this:
+
+\paragraph{KIDO\_DYNAMICS\_SET\_GET\_ADDON\_PROPERTY} will create a setter and getter function for a variable in the Properties POD. The first argument for this macro is the variable type, and the second argument is the variable name. There is also:
+\begin{itemize}
+  \item \textbf{KIDO\_DYNAMICS\_SET\_ADDON\_PROPERTY} which will only create the set
+  \item \textbf{KIDO\_DYNAMICS\_GET\_ADDON\_PROPERTY} which will only create the get
+\end{itemize} 
+
+\paragraph{KIDO\_DYNAMICS\_SET\_GET\_ADDON\_PROPERTY\_ARRAY} can be used to access and mutate the individual components of an array or vector field within the POD \textbf{Properties} structure. For variable names whose plural form is ``irregular'' (i.e. is not the same as adding `s' to the end), there is also 
+
+\begin{itemize}
+  \item \textbf{KIDO\_DYNAMICS\_IRREGULAR\_SET\_GET\_ADDON\_PROPERTY\_ARRAY} which allows you to specify the singular and plural forms of the name.
+\end{itemize}
+
+There are more macros, similar to these, which address a variety of use cases. Although C-macros can be strange and clumsy, they can save a significant amount of typing and prevent errors that may result from forgetfulness.
+
 \subsubsection{Nodes}
 \label{sec:nodes}
 \red{Grey}
