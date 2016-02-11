@@ -140,7 +140,89 @@ There are more macros, similar to these, which address a variety of use cases. A
 
 \subsubsection{Nodes}
 \label{sec:nodes}
-\red{Grey}
+
+\textbf{Node}s are conceptually similar to \textbf{Addon}s, so this section will focus on what makes \textbf{Node}s different from \textbf{Addon}s. Reading the previous section (\ref{sec:addons}) on \textbf{Addon}s before this section is recommended.
+
+Only one instance of any particular type of \textbf{Addon} can be embedded into a single AddonManager. \textbf{Node}s differ from this in that any number of a \textbf{Node} type can be attached to a \textbf{BodyNode}. This brings up another difference: A \textbf{Node} can only be attached to a \textbf{BodyNode}, whereas an \textbf{Addon} can be attached to anything that inherits the AddonManager class. Each \textbf{Node} also requires a name, which is not necessary for an \textbf{Addon}. Moreover, each \textbf{Node} of any given \textbf{Node} type within a \textbf{Skeleton} must have a unique name. \textbf{Node}s can be accessed by name and type through their \textbf{Skeleton}, for example:
+
+\begin{lstlisting}
+// Assume skeleton is a SkeletonPtr type:
+EndEffector* hand = skeleton->getNode<EndEffector>("left_hand");
+\end{lstlisting}
+
+Even though \textbf{Node}s are accessible through the \textbf{Skeleton}, they are not owned by the Skeleton; they are owned by the \textbf{BodyNode} to which they are attached. If the \textbf{BodyNode} is moved to a new \textbf{Skeleton}, all \textbf{Node}s that are attached to it will follow. However, the indexing of the \textbf{Node}s may change after being moved into a new Skeleton, and the names of the \textbf{Node}s may change (by appending a number to the string) if there is a name collision with any \textbf{Node}s of the same type that were already in the \textbf{Skeleton}. If a name change occurs, a message will be printed to \texttt{stdout}, and a \textbf{NameChangedSignal} will emanate from the \textbf{Node} whose name needed to be changed. When a whole \textbf{Skeleton} is cloned into a new \textbf{Skeleton}, the names of its \textbf{Node}s are guaranteed to remain the same, and the indexing of the \textbf{Node}s is guaranteed to remain the same.
+
+The defining feature of a \textbf{Node} is that it is something which belongs to a \textbf{BodyNode} in some sense. \textbf{BodyNode} is a special case of the \textbf{Node} class; it is a \textbf{Node} which belongs to itself. Because of this, it has its own specialized management semantics (described in section \ref{sec:skeleton_modeling}). Most other \textbf{Node} types will simply inherit the \textbf{AccessoryNode} class which allows them to be detached from their \textbf{BodyNode} by calling the \textbf{remove()} function on them. When a \textbf{Node} is removed from its \textbf{BodyNode}, it can no longer be accessed by calling any \textbf{getNode} function from the \textbf{BodyNode} or \textbf{Skeleton} that it had been attached to. If no strong references (such a \textbf{NodePtr}) remain for a removed \textbf{Node}, then the \textbf{Node} instance will be deleted. If a strong reference does exist, then the \textbf{Node} will continue to function as normal, except any features which would normally access it through a \textbf{getNode} call will no longer work. The Node will also have \textbf{INVALID\_INDEX} as its index within the \textbf{BodyNode} and within the \textbf{Skeleton} (note that this does not mean you can access the Node using \textbf{INVALID\_INDEX}). A removed \textbf{AccessoryNode} can be reattached---if and only if a strong reference to it remains---by calling the \textbf{reattach()} function on it.
+
+When creating a custom \textbf{Node} type, you will most likely want to inherit \textbf{AccessoryNode}, because it will provide the interface for removing and reattaching that was described in the previous paragraph. If your \textbf{Node} inherits the \textbf{Frame} class in some way, you might also want to have it inherit the \textbf{TemplatedJacobianNode} class in order to provide it with an interface for computing Jacobians. Note that the Node class does not allow multiple-inheritance (just like the Addon class), so if you have an implementation of some features which you would like to share among a number of different \textbf{Node} types, we advise you to use CRTP-style mix-in classes, like the \textbf{AccessoryNode} class.
+
+Just like the \textbf{Addon} class, the \textbf{Node} class has a concept of \textbf{State}, \textbf{Properties}, and cloning. It also has a concept of naming. The following functions \textbf{need} to be overridden by inheriting classes:
+
+\begin{lstlisting}
+// Create a new Node which is identical to this one, except it will be attached to
+// the BodyNode named bn.
+Node* cloneNode(BodyNode* bn) const;
+
+// Change the name of this Node. When implementing this function, you must be sure
+// to call the protected function Node::registerNameChange(const std::string&),
+// otherwise the Skeleton would be left unaware of the name change. Note that if
+// the new name collides with an already existing name, then
+// Node::registerNameChange(~) will let you know this by returning the modified
+// version of the name. Otherwise, it will send back the name that you passed in.
+//
+// You should return the final name, as given back by Node::registerNameChange(~),
+// to convey to the user what the final name will be.
+const std::string& setName(const std::string& newName);
+
+// Different Nodes might store their names in different ways, so this function is
+// pure virtual in order to give the user the freedom to decide how their Node's
+// name is stored.
+const std::string& getName() const;
+\end{lstlisting}
+
+Additionally, if the Node has State data, the following functions should be overridden:
+
+\begin{lstlisting}
+// Set the State of the Node given a reference to a const Node::State object. You
+// will be required to downcast the reference to the correct type for your Node.
+// Even though KIDO guarantees that the incoming reference will always be
+// appropriate type for your Node type, this guarantee does not apply to any time
+// that a user decides to invoke this function. Therefore, a static_cast is
+// recommended for downcasting if performance is the most important factor, but
+// only a dynamic_cast can ensure that the function is safe from malicious or
+// careless users.
+void setNodeState(const Node::State& otherState);
+
+// Return a pointer containing a newly instantiated version of the Node::State
+// for your Node type.
+std::unique_ptr<Node::State> getNodeState() const;
+\end{lstlisting}
+
+Similarly, if the Node has Properties data, the following functions should be overridden:
+
+\begin{lstlisting}
+// Similar to setNodeState (see above), except for Properties data
+void setNodeProperties(const Node::Properties& otherProperties);
+
+// Similar to getNodeState (see above), except for Properties data
+std::unique_ptr<Node::Properties> getNodeProperties() const;
+\end{lstlisting}
+
+In some cases, the \textbf{State} or \textbf{Properties} of a particular \textbf{Node} type might contain a significant amount of data which would be slow or wasteful to frequently allocate and deallocate. For cases like this, the following functions will pass a \textbf{Node::State} or \textbf{Node::Properties} pointer which can be modified directly to match the current \textbf{State} or \textbf{Properties} of the Node. This avoids the need to allocate and deallocate the \textbf{State} or \textbf{Properties} from the heap:
+
+\begin{lstlisting}
+// You can copy the state information directly instead of allocating a copy in
+// new memory.
+void copyNodeStateTo(std::unique_ptr<Node::State>& outputState) const;
+
+// You can copy the property information directly instead of allocating a copy in
+// new memory.
+void copyNodePropertiesTo(
+    std::unique_ptr<Node::Properties>& outputProperties) const;
+\end{lstlisting}
+
+This is all that is needed to create a fully functional Node that is compatible with KIDO and can be attached to a BodyNode.
+
 \subsection{History recorder}
 \todo[MXG]{It doesn't look like we'll have this in time for the next major release, although it will probably be available for the next minor release. Will it be possible to update this tech report as we add features and make changes?}
 \subsection{Optimization interface}
